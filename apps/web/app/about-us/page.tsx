@@ -345,7 +345,7 @@ export default function AboutPage() {
               </p>
             </motion.div>
 
-            <motion.div
+            <motion.ul
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto"
               initial="hidden"
               whileInView="show"
@@ -355,7 +355,7 @@ export default function AboutPage() {
               {features.map((feature) => {
                 const Icon = feature.icon
                 return (
-                  <motion.div
+                  <motion.li
                     key={feature.title}
                     variants={{
                       hidden: { opacity: 0, y: 30 },
@@ -368,10 +368,10 @@ export default function AboutPage() {
                       icon={<Icon className="h-6 w-6 text-slate-500" />}
                       description={feature.description}
                     />
-                  </motion.div>
+                  </motion.li>
                 )
               })}
-            </motion.div>
+            </motion.ul>
           </div>
         </section>
 

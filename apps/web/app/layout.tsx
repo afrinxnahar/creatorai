@@ -4,14 +4,13 @@ import { Inter } from "next/font/google";
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@repo/ui/sonner";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SupabaseProvider } from "@/components/supabase-provider";
-import { Analytics } from "@vercel/analytics/next";
 import { siteConfig, createMetadata } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 import Script from "next/script";
 import PublicHannah from "@/components/hannah/PublicHannah"
 import MotionProvider from "@/components/MotionProvider"
+import WebVitals from "@/components/WebVitals"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -68,6 +67,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        {/* Client boundary is confined to this one null-rendering component. */}
+        <WebVitals />
         <JsonLd data={organizationJsonLd} />
         <JsonLd data={webAppJsonLd} />
         <ThemeProvider
@@ -109,8 +110,6 @@ export default function RootLayout({
             gtag('config', 'G-RVSYKESCPC');
           `}
         </Script>
-        <SpeedInsights />
-        <Analytics />
       </body>
     </html>
   )

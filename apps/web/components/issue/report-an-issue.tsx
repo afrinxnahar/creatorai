@@ -42,14 +42,26 @@ const ReportIssue = ({ useIcon }: { useIcon: boolean }) => {
   return (
     <Popover>
       <PopoverTrigger asChild>
+        {/* Both branches must be real buttons. `asChild` hands the trigger's
+            button semantics (type, aria-haspopup/expanded/controls) to whatever
+            child is here — on a <p> or <div> those ARIA attributes aren't valid
+            for the element's role, and neither is focusable, so the popover was
+            unreachable by keyboard entirely. */}
         {useIcon ? (
-          <div className="fixed bottom-4 right-4 z-50 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-[#8e8c8c] rounded-full flex items-center justify-center cursor-pointer shadow-md transition-transform hover:scale-105">
+          <button
+            type="button"
+            aria-label="Report an issue"
+            className="fixed bottom-4 right-4 z-50 w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-[#8e8c8c] rounded-full flex items-center justify-center cursor-pointer shadow-md transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
+          >
             <IconBugFilled className="text-black w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14" />
-          </div>
+          </button>
         ) : (
-          <p className="text-sm text-slate-600 dark:text-slate-400 dark:hover:text-slate-100 transition-colors hover:text-purple-500 cursor-pointer">
+          <button
+            type="button"
+            className="text-sm text-slate-600 dark:text-slate-400 dark:hover:text-slate-100 transition-colors hover:text-purple-500 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded"
+          >
             Report an Issue
-          </p>
+          </button>
         )}
       </PopoverTrigger>
 

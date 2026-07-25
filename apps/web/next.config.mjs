@@ -8,6 +8,44 @@ import { dirname, resolve } from 'node:path';
 // absent (Vercel injects env directly) — dotenv silently ignores a missing path.
 config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env') });
 
+// --- Content Security Policy ------------------------------------------------
+// Built from env so dev (localhost API) and prod (real API host) share one
+// policy instead of two that drift apart.
+//
+// Shipped as Content-Security-Policy-REPORT-ONLY on purpose: it reports
+// violations without blocking, so real traffic proves the allowlist is complete
+// before anything can break. See the note in headers() for the enforce path.
+const isDev = process.env.NODE_ENV === "development";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+// Supabase realtime uses a websocket on the same host.
+const supabaseWs = supabaseUrl.replace(/^https:/, "wss:");
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  // 'unsafe-inline' is load-bearing while these pages stay static. Nonces are
+  // the strong alternative, but Next can only inject them during dynamic
+  // rendering, which turns off static generation, ISR and CDN caching — the
+  // exact wins the recent perf work bought. inlineCss also emits inline
+  // <style> tags by design.
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://www.googletagmanager.com https://lmsqueezy.com https://app.lemonsqueezy.com`,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' data: blob: https://avatar.vercel.sh https://yt3.ggpht.com https://i.ytimg.com https://www.google-analytics.com ${supabaseUrl}`,
+  "font-src 'self' data:",
+  `connect-src 'self' ${supabaseUrl} ${supabaseWs} ${backendUrl} https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com`,
+  // Demo video (Drive) and the checkout overlay.
+  "frame-src 'self' https://drive.google.com https://www.youtube-nocookie.com https://www.youtube.com https://app.lemonsqueezy.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  // Modern replacement for the X-Frame-Options below, which stays for old browsers.
+  "frame-ancestors 'self'",
+  // Skipped in dev: it would rewrite the http://localhost API calls to https.
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+]
+  .filter(Boolean)
+  .join("; ");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -44,6 +82,13 @@ const nextConfig = {
   // does this for lucide-react, @tabler/icons-react, recharts and date-fns.
   experimental: {
     optimizePackageImports: ["motion", "@repo/ui", "@tsparticles/slim"],
+    // Inline the Tailwind CSS as a <style> tag instead of a render-blocking
+    // <link>, killing the CSS request waterfall that PageSpeed flags (~930ms
+    // mobile). Right feature for App Router — optimizeCss/critters can't stream.
+    // ponytail: experimental + build-only (invisible in `next dev`); verify on
+    // the Vercel preview before merge. Trade-off is returning visitors re-fetch
+    // the ~30KiB CSS per load — negligible for a first-visitor landing page.
+    inlineCss: true,
   },
   // 301s from the original blog slugs to the longer, keyword-rich SEO slugs.
   // Preserves rankings/backlinks after the 2026 SEO slug migration.
@@ -76,6 +121,30 @@ const nextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Two years, the value Lighthouse and OWASP both ask for. `preload` is
+          // deliberately absent: it needs a manual submission to
+          // hstspreload.org and is slow to undo, so it should be a conscious
+          // choice rather than a side effect of this commit.
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains",
+          },
+          // Isolates this window from cross-origin documents that open it.
+          // `-allow-popups` rather than plain `same-origin` so any popup we open
+          // (checkout) keeps its window.opener link. OAuth here is redirect
+          // based, so it is unaffected either way.
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
+          // Report-only for now. Enforcing needs one of: nonces (costs static
+          // rendering), experimental.sri (keeps static, still experimental), or
+          // accepting 'unsafe-inline' (which Lighthouse will keep flagging).
+          // Collect real violations first, then pick.
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: contentSecurityPolicy,
+          },
         ],
       },
       {

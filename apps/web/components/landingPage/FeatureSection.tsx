@@ -116,7 +116,10 @@ export default function FeatureSection() {
         </p>
       </motion.div>
 
-      <motion.div
+      {/* A real <ul>/<li>: screen readers then announce "list, 11 items" and let
+          users step through the features. Tailwind's preflight already strips the
+          markers, so nothing changes visually. */}
+      <motion.ul
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12"
         variants={containerVariants}
         initial="hidden"
@@ -126,7 +129,7 @@ export default function FeatureSection() {
         {features.map((feature, index) => {
           const Icon = feature.icon
           return (
-            <motion.div
+            <motion.li
               key={index}
               variants={itemVariants}
               transition={{ type: "spring", stiffness: 100, damping: 14 }}
@@ -136,10 +139,10 @@ export default function FeatureSection() {
                 icon={<Icon className="h-6 w-6 text-purple-600 dark:text-purple-400" />}
                 description={feature.description}
               />
-            </motion.div>
+            </motion.li>
           )
         })}
-      </motion.div>
+      </motion.ul>
     </div>
   )
 }

@@ -59,6 +59,10 @@ export default function PricingSection({ hideHeader = false }: { hideHeader?: bo
                 <button
                     type="button"
                     role="switch"
+                    // Stable name: the ARIA spec requires a switch's label not to
+                    // change with its state. "Annual billing" + aria-checked reads
+                    // as on/off; the flanking Monthly/Annual text is visual only.
+                    aria-label="Annual billing"
                     aria-checked={annual}
                     onClick={() => setAnnual((v) => !v)}
                     className={cn(

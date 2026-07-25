@@ -58,6 +58,9 @@ const FloatingDockMobile = ({
                 <a
                   href={item.href}
                   key={item.title}
+                  // Icon-only link: without a name a screen reader announces just
+                  // "link". The title is a hover tooltip, so it can't supply one.
+                  aria-label={item.title}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-neutral-900"
                 >
                   <div className="h-4 w-4">{item.icon}</div>
@@ -155,7 +158,9 @@ function IconContainer({
   const [hovered, setHovered] = useState(false);
 
   return (
-    <a href={href}>
+    // Same as the mobile dock: the label only appears on hover, so the link
+    // needs its own accessible name.
+    <a href={href} aria-label={title}>
       <motion.div
         ref={ref}
         style={{ width, height }}

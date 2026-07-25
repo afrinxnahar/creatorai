@@ -40,6 +40,15 @@ export const SparklesCore = (props: ParticlesProps) => {
         // pay for the download either.
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+        // Same bargain on phones: the particles sit behind centred text on a
+        // gradient — the heroes' decorative art is already `hidden md:flex` —
+        // so mobile was paying ~140kB plus a 60fps canvas loop for a decoration
+        // it barely shows, on exactly the low-end devices where that main-thread
+        // time costs the most.
+        // ponytail: checked on mount only, like the reduced-motion guard above.
+        // No resize listener — a phone rotated into >=768px just stays static.
+        if (window.matchMedia("(max-width: 767px)").matches) return;
+
         let cancelled = false;
         const start = async () => {
             const [{ initParticlesEngine }, { loadSlim }] = await Promise.all([
