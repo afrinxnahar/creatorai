@@ -9,7 +9,10 @@ interface FeatureCardProps {
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) => {
   return (
-    <li className="min-h-[14rem] list-none focus-within:ring-2 focus-within:ring-purple-500 rounded-3xl transition">
+    // The list semantics live on the caller's <li> wrapper: a <ul> may only
+    // directly contain <li>, and every caller wraps this card in an animated
+    // element, so the card itself stays a plain div.
+    <div className="min-h-[14rem] focus-within:ring-2 focus-within:ring-purple-500 rounded-3xl transition">
       <div className="relative h-full rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10 dark:hover:shadow-purple-400/5 hover:scale-[1.02]">
         <GlowingEffect
           spread={40}
@@ -35,7 +38,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) =
           </div>
         </div>
       </div>
-    </li>
+    </div>
   );
 };
 
