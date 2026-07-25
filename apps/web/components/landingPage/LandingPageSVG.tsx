@@ -98,12 +98,20 @@ const LandingPageSVG = () => {
                             animate={{ strokeDashoffset: [20, 0] }}
                             transition={{ repeat: Infinity, duration: 6, ease: "linear" }}
                         />
+                        {/* Pulses with `scale`, not the `r` attribute. MotionProvider
+                            loads its feature bundle asynchronously, so until it lands
+                            `m.circle` can't resolve an `r` keyframe array and writes
+                            r="undefined" — an SVG error in the console. Same pulse the
+                            sparks below use, and a transform composites instead of
+                            forcing layout every frame. fill-box keeps it centred; SVG
+                            would otherwise scale from the user-space origin. */}
                         <motion.circle
                             cx="60"
                             cy="60"
                             r="1"
                             fill="white"
-                            animate={{ r: [1, 2, 1], opacity: [0.3, 0.8, 0.3] }}
+                            style={{ transformBox: "fill-box", transformOrigin: "center" }}
+                            animate={{ scale: [1, 2, 1], opacity: [0.3, 0.8, 0.3] }}
                             transition={{ duration: 2.5, repeat: Infinity }}
                         />
                     </svg>
