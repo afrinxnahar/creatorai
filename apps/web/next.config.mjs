@@ -44,6 +44,13 @@ const nextConfig = {
   // does this for lucide-react, @tabler/icons-react, recharts and date-fns.
   experimental: {
     optimizePackageImports: ["motion", "@repo/ui", "@tsparticles/slim"],
+    // Inline the Tailwind CSS as a <style> tag instead of a render-blocking
+    // <link>, killing the CSS request waterfall that PageSpeed flags (~930ms
+    // mobile). Right feature for App Router — optimizeCss/critters can't stream.
+    // ponytail: experimental + build-only (invisible in `next dev`); verify on
+    // the Vercel preview before merge. Trade-off is returning visitors re-fetch
+    // the ~30KiB CSS per load — negligible for a first-visitor landing page.
+    inlineCss: true,
   },
   // 301s from the original blog slugs to the longer, keyword-rich SEO slugs.
   // Preserves rankings/backlinks after the 2026 SEO slug migration.
