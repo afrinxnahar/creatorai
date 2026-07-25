@@ -10,6 +10,7 @@ import JsonLd from "@/components/JsonLd";
 import Script from "next/script";
 import PublicHannah from "@/components/hannah/PublicHannah"
 import MotionProvider from "@/components/MotionProvider"
+import WebVitals from "@/components/WebVitals"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -66,6 +67,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        {/* Client boundary is confined to this one null-rendering component. */}
+        <WebVitals />
         <JsonLd data={organizationJsonLd} />
         <JsonLd data={webAppJsonLd} />
         <ThemeProvider
