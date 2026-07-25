@@ -59,7 +59,7 @@ export default function Home() {
             />
           </div>
 
-          <div className="container mx-12 px-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center relative z-10">
+          <div className="container px-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center relative z-10">
             <div className="flex flex-col items-center md:items-start text-center md:text-left">
               <div
                 className={`${RISE} inline-flex items-center gap-2 px-4 py-1 mb-4 rounded-full text-sm font-medium bg-white/60 ring-1 ring-slate-900/10 backdrop-blur-md`}
