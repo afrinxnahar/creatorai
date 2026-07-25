@@ -2,6 +2,13 @@
   "name": "web",
   "version": "1.0.0",
   "private": true,
+  "browserslist": [
+    "chrome >= 92",
+    "edge >= 92",
+    "firefox >= 90",
+    "safari >= 15.4",
+    "ios_saf >= 15.4"
+  ],
   "scripts": {
     "dev": "next dev",
     "dev:new": "next dev -p 4000",

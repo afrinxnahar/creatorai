@@ -43,7 +43,7 @@ function ReviewCard({
           height={32}
           loading="lazy"
           alt={`${name}, YouTube creator`}
-          src={img}
+          src={`${img}?size=64`}
         />
         <div className="min-w-0 flex-1">
           <figcaption className="text-sm font-medium text-slate-900 dark:text-white">
