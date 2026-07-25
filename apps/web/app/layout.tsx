@@ -4,9 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@repo/ui/sonner";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SupabaseProvider } from "@/components/supabase-provider";
-import { Analytics } from "@vercel/analytics/next";
 import { siteConfig, createMetadata } from "@/lib/seo";
 import JsonLd from "@/components/JsonLd";
 import Script from "next/script";
@@ -109,20 +107,6 @@ export default function RootLayout({
             gtag('config', 'G-RVSYKESCPC');
           `}
         </Script>
-        {/* Vercel serves these two scripts from /_vercel/* on its own edge, so
-            on the self-hosted box (Caddy -> Next standalone) they fall through
-            to the 404 page and every visitor's console logs a MIME-type refusal
-            for a script that cannot exist there. `VERCEL` is set to "1" only
-            when Vercel is actually running the app, so the Vercel-served
-            deployment keeps full analytics while the self-hosted one stops
-            asking. Needs "Enable access to System Environment Variables" left
-            on in project settings (Vercel's default). */}
-        {process.env.VERCEL && (
-          <>
-            <SpeedInsights />
-            <Analytics />
-          </>
-        )}
       </body>
     </html>
   )
