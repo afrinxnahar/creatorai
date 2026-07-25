@@ -109,8 +109,20 @@ export default function RootLayout({
             gtag('config', 'G-RVSYKESCPC');
           `}
         </Script>
-        <SpeedInsights />
-        <Analytics />
+        {/* Vercel serves these two scripts from /_vercel/* on its own edge, so
+            on the self-hosted box (Caddy -> Next standalone) they fall through
+            to the 404 page and every visitor's console logs a MIME-type refusal
+            for a script that cannot exist there. `VERCEL` is set to "1" only
+            when Vercel is actually running the app, so the Vercel-served
+            deployment keeps full analytics while the self-hosted one stops
+            asking. Needs "Enable access to System Environment Variables" left
+            on in project settings (Vercel's default). */}
+        {process.env.VERCEL && (
+          <>
+            <SpeedInsights />
+            <Analytics />
+          </>
+        )}
       </body>
     </html>
   )
