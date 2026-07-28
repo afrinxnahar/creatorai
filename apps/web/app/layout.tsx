@@ -44,6 +44,16 @@ const organizationJsonLd = {
   sameAs: [`https://twitter.com/${siteConfig.twitterHandle.replace("@", "")}`],
 }
 
+// Tells Google which name to render as the site title in search results.
+const webSiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: siteConfig.name,
+  alternateName: ["Creator AI App", "Script AI"],
+  url: siteConfig.url,
+  sameAs: ["https://trycreatorai.com/"],
+}
+
 const webAppJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
@@ -70,6 +80,7 @@ export default function RootLayout({
         {/* Client boundary is confined to this one null-rendering component. */}
         <WebVitals />
         <JsonLd data={organizationJsonLd} />
+        <JsonLd data={webSiteJsonLd} />
         <JsonLd data={webAppJsonLd} />
         <ThemeProvider
           attribute="class"

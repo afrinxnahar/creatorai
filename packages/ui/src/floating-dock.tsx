@@ -71,7 +71,13 @@ const FloatingDockMobile = ({
         )}
       </AnimatePresence>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
+        // Icon-only toggle: without a name a screen reader announces just "button".
+        // The name has to stay stable across states, so the open/closed state rides
+        // on aria-expanded rather than on the label.
+        aria-label="Social links"
+        aria-expanded={open}
         className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-neutral-800"
       >
         <IconLayoutNavbarCollapse className="h-5 w-5 text-neutral-500 dark:text-neutral-400" />
