@@ -1,5 +1,6 @@
 "use client"
 import { SuccessDialog } from "@/components/success-dialog";
+import { OutOfCreditsDialog } from "@/components/dashboard/common/OutOfCreditsDialog";
 import * as motion from "motion/react-m";
 import { PenTool, Search, Volume2, ImageIcon, Subtitles, BookOpen } from "lucide-react";
 import { useAITraining } from "@/hooks/useAITraining";
@@ -28,6 +29,8 @@ export default function TrainAIPage() {
     showModal,
     selectedVideoIds,
     lastCreditsConsumed,
+    outOfCreditsMessage,
+    dismissOutOfCredits,
     setShowModal,
     handleToggleVideo,
     handleStartTraining,
@@ -78,6 +81,12 @@ export default function TrainAIPage() {
         title="Model Training Complete!"
         description="Your AI model has been trained on your unique style. Enjoy the personalized experience."
         nextSteps={nextSteps}
+      />
+
+      <OutOfCreditsDialog
+        open={outOfCreditsMessage !== null}
+        onOpenChange={dismissOutOfCredits}
+        description={outOfCreditsMessage ?? ""}
       />
     </div>
   );

@@ -31,6 +31,7 @@ export function useAITraining() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [isTraining, setIsTraining] = useState(false)
   const [lastCreditsConsumed, setLastCreditsConsumed] = useState<number | null>(null)
+  const [outOfCreditsMessage, setOutOfCreditsMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user?.id || !profile?.ai_trained || !supabase) return
@@ -59,6 +60,12 @@ export function useAITraining() {
         const parsed = JSON.parse(error)
         errorMessage = parsed.error?.message || parsed.message || error
       } catch { }
+      // Running out of credits is the one failure the user can act on, so it gets
+      // a dialog with a route to billing instead of a toast they can miss.
+      if (errorMessage.toLowerCase().startsWith("insufficient credits")) {
+        setOutOfCreditsMessage(errorMessage.replace(/^insufficient credits\.\s*/i, ""))
+        return
+      }
       toast.error("Training Failed", { description: errorMessage })
     },
     onFinished: () => {
@@ -148,6 +155,8 @@ export function useAITraining() {
     selectedVideos,
     selectedVideoIds: selectedVideos.map((v) => v.id),
     lastCreditsConsumed,
+    outOfCreditsMessage,
+    dismissOutOfCredits: () => setOutOfCreditsMessage(null),
     setShowModal,
     handleToggleVideo,
     handleStartTraining,

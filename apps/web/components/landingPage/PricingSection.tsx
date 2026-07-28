@@ -192,7 +192,14 @@ function PlanCard({ plan, annual, href }: { plan: MarketingPlan; annual: boolean
                     )}
                     variant={isPopular ? "default" : "outline"}
                 >
-                    <Link href={href} onClick={() => trackFunnel("plan_clicked", plan.name)}>
+                    {/* Every card renders the same "Get Started" text but points at a
+                        different plan, so the visible label alone can't tell two links
+                        apart. The plan name goes in the accessible name instead. */}
+                    <Link
+                        href={href}
+                        aria-label={isFree ? "Start free on the Free plan" : `Get started with the ${plan.name} plan`}
+                        onClick={() => trackFunnel("plan_clicked", plan.name)}
+                    >
                         {isFree ? "Start Free" : "Get Started"}
                     </Link>
                 </Button>

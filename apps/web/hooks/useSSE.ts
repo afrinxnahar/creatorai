@@ -92,8 +92,10 @@ export function useSSE<TResult = unknown>(
             onComplete?.(extracted as TResult);
           } else if (data.state === "failed") {
             const errorMsg = data.error || "An unknown error occurred";
-            toast.error("Generation Failed", { description: errorMsg });
-            onFailed?.(errorMsg);
+            // A caller with onFailed reports the failure itself — as its own toast,
+            // or as a dialog. Toasting here too would double up, or contradict it.
+            if (onFailed) onFailed(errorMsg);
+            else toast.error("Generation Failed", { description: errorMsg });
           }
 
           setIsActive(false);
