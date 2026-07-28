@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/dialog"
-import { CreditCard, ArrowRight } from "lucide-react"
+import { CreditCard, ArrowRight, Gift } from "lucide-react"
 
 interface OutOfCreditsDialogProps {
   open: boolean
@@ -36,8 +36,13 @@ export function OutOfCreditsDialog({ open, onOpenChange, description }: OutOfCre
         </DialogHeader>
 
         <DialogFooter className="mt-2 flex-col-reverse gap-2 sm:flex-row sm:justify-center">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
-            Maybe later
+          {/* Referral first, so the free route is on the table before the paid one.
+              The dialog's own X still handles dismissing. */}
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/dashboard/referrals" onClick={() => onOpenChange(false)}>
+              <Gift className="mr-1.5 h-4 w-4" />
+              Earn more credits
+            </Link>
           </Button>
           <Button
             asChild
