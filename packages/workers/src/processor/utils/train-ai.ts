@@ -508,12 +508,26 @@ export async function saveStyleData(
     { tokensPerCredit, multiplier: trainAiMultiplier, minimumCredits: 1 },
   );
 
-  const { data: profile } = await supabase.from('profiles').select('credits').eq('user_id', userId).single();
-  if (profile.credits < geminiCredits) {
-    throw new Error('Insufficient credits, Please upgrade your plan.');
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('credits')
+    .eq('user_id', userId)
+    .single();
+  if (profileError || !profile) {
+    logError('train-ai-profile-fetch', profileError, { userId });
+    throw new Error('Could not load your account to charge for training.');
   }
 
-  await supabase.from('profiles').update({ credits: profile.credits - geminiCredits, ai_trained: true }).eq('user_id', userId);
+  // Same "Insufficient credits." opening as the dubbing, thumbnail and video
+  // processors — the dashboard keys its out-of-credits dialog off that prefix.
+  const credits = profile.credits ?? 0;
+  if (credits < geminiCredits) {
+    throw new Error(
+      `Insufficient credits. This training needed ${geminiCredits} credits but you have ${credits}. Please upgrade your plan and train again.`,
+    );
+  }
+
+  await supabase.from('profiles').update({ credits: credits - geminiCredits, ai_trained: true }).eq('user_id', userId);
 
   const styleData: Record<string, any> = {
     user_id: userId,
