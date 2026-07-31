@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/dialog";
 import { useDubbing } from "@/hooks/useDubbing";
-import { supportedLanguages } from "@repo/validation";
+import { supportedLanguages, accentsFor } from "@repo/validation";
 import { downloadFile } from "@/lib/download";
 import { GenerationProgress, type GenerationProgressStep } from "@/components/dashboard/common/GenerationProgress";
 import { DubbingHowItWorks } from "@/components/dashboard/dubbing/DubbingHowItWorks";
@@ -48,7 +48,7 @@ function DubbingUpgradeCard() {
           </div>
           <h3 className="text-2xl font-bold mb-3">Dub longer clips on a paid plan</h3>
           <p className="text-slate-400 text-sm leading-relaxed mb-8">
-            Clone a voice and dub audio or video into 21 languages while keeping the original
+            Clone a voice and dub audio or video into 29 languages while keeping the original
             voice. Dubbing is available on every plan — Starter covers clips up to 60 seconds,
             and any paid plan removes the length limit entirely.
           </p>
@@ -101,6 +101,8 @@ export default function NewDubbing() {
     isVideo,
     targetLanguage,
     setTargetLanguage,
+    targetAccent,
+    setTargetAccent,
     mediaName,
     setMediaName,
     dubbedResult,
@@ -131,6 +133,7 @@ export default function NewDubbing() {
   };
 
   const selectedLanguageLabel = supportedLanguages.find((l) => l.value === targetLanguage)?.label;
+  const accentOptions = accentsFor(targetLanguage);
   const isComplete = !!dubbedResult && progress.state === "completed";
 
   const handleDrop = useCallback(
@@ -147,7 +150,7 @@ export default function NewDubbing() {
     if (!dubbedResult?.dubbedUrl) return;
     setIsDownloading(true);
     try {
-      const ext = isVideo ? "mp4" : "wav";
+      const ext = isVideo ? "mp4" : "mp3";
       const filename = `dubbed_${isVideo ? "video" : "audio"}_${dubbedResult.targetLanguage}.${ext}`;
       await downloadFile(dubbedResult.dubbedUrl, filename);
     } catch {
@@ -395,6 +398,26 @@ export default function NewDubbing() {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Only rendered for languages that have accents worth choosing. */}
+                      {accentOptions.length > 0 && (
+                        <div className="space-y-2">
+                          <Label htmlFor="target-accent" className="flex items-center gap-1.5">
+                            <Languages className="h-4 w-4" />
+                            Accent <span className="text-xs font-normal text-slate-500">(optional)</span>
+                          </Label>
+                          <Select value={targetAccent} onValueChange={setTargetAccent}>
+                            <SelectTrigger id="target-accent">
+                              <SelectValue placeholder="Default accent" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accentOptions.map((accent) => (
+                                <SelectItem key={accent.value} value={accent.value}>{accent.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </CardContent>
 
                     <CardFooter>

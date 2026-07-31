@@ -10,6 +10,7 @@ import {
   STARTER_MAX_DUB_SECONDS,
   maxDubSecondsForPlan,
   isDubDurationAllowed,
+  supportedLanguages,
 } from './dubbing';
 import {
   calculateDubbingCreditsByDuration,
@@ -98,5 +99,20 @@ assert.equal(CreateDubSchema.safeParse({ targetLanguage: 'es', isVideo: false, m
 
 // Cancel prefix is stable — the API sets it, the worker polls it.
 assert.equal(DUBBING_CANCEL_PREFIX, 'dubbing:cancel:');
+
+// The dropdown must mirror what the dubbing API accepts. A language it does not
+// support comes back as audio in the WRONG language rather than an error, so an
+// extra entry here is silently broken output.
+assert.equal(supportedLanguages.length, 29);
+const languageCodes = supportedLanguages.map((l) => l.value);
+assert.equal(new Set(languageCodes).size, languageCodes.length, 'duplicate language code');
+assert.equal(languageCodes.includes('no' as never), false, 'Norwegian is flash-v2.5 only');
+for (const code of ['en', 'es', 'ar', 'uk', 'ta', 'fil', 'ms', 'sv', 'zh']) {
+  assert.equal(languageCodes.includes(code as never), true, `missing ${code}`);
+}
+for (const { value, label } of supportedLanguages) {
+  assert.equal(/^[a-z]{2,3}$/.test(value), true, `not an ISO code: ${value}`);
+  assert.equal(label.trim().length > 0, true, `missing label for ${value}`);
+}
 
 console.log('dubbing self-check OK');

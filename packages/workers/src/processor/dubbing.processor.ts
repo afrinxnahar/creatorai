@@ -12,34 +12,33 @@ import {
 } from '@repo/validation';
 import { GoogleGenAI } from '@google/genai';
 import { getGenAI, GEMINI_TEXT_MODEL } from './utils/genai';
-import {
-  createVoiceClone,
-  deleteVoice,
-  getElevenLabsKey,
-  textToSpeech,
-  voiceExists,
-} from './utils/elevenlabs';
-import { extractVoiceSample, muxAudioOverVideo } from './utils/media';
-import { mkdtemp, rm, writeFile } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
 
 // The clone step (Modal GPU) can run for a few minutes — cap the wait so a hung
 // request fails the job instead of pinning a worker slot forever.
 const MODAL_TIMEOUT_MS = 10 * 60 * 1000;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dubbing: Gemini translates, ElevenLabs speaks in the creator's own cloned voice.
+// Dubbing runs on ElevenLabs' /v1/dubbing endpoint, which transcribes, translates,
+// clones the speaker and re-times the result in one call.
 //
-// ElevenLabs' one-shot /v1/dubbing endpoint is deliberately NOT used: it has no
-// parameter for a target voice, so it re-clones whoever is speaking in each upload.
-// That gives a creator a different voice per job. Cloning once and synthesising with
-// that voice every time is what keeps one identity across every language.
+// Voice cloning is on by default (`disable_voice_cloning` is false): the voice in
+// the output is cloned from the speaker in the uploaded media. Since creators dub
+// their own videos, that is their own voice — which is the whole requirement. It
+// also keeps ElevenLabs' timing alignment and multi-speaker handling, both of which
+// a translate-then-synthesise pipeline gives up.
 //
 // The Modal + Chatterbox path is kept commented at the bottom of this file as the
 // fallback if ElevenLabs disappoints.
 // ─────────────────────────────────────────────────────────────────────────────
+const ELEVENLABS_API = 'https://api.elevenlabs.io/v1';
+const ELEVENLABS_POLL_INTERVAL_MS = 5_000;
 const ELEVENLABS_TIMEOUT_MS = 20 * 60 * 1000;
+
+function getElevenLabsKey(): string {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) throw new Error('ELEVENLABS_API_KEY is not configured');
+  return key;
+}
 
 class DubbingCancelledError extends Error {
   constructor() {
@@ -52,11 +51,12 @@ interface DubJobData {
   userId: string;
   projectId: string;
   bullJobId: string;
-  inputGsUri: string;   // gs:// — Vertex transcribes/translates directly from this
-  inputUrl: string;     // public GCS URL — the clone service fetches the reference from this
+  inputGsUri: string;   // gs:// — kept for the dormant Modal path
+  inputUrl: string;     // public GCS URL — ElevenLabs fetches the source from this
   mimeType: string;
   isVideo: boolean;
   targetLanguage: string;
+  targetAccent?: string | null;
   durationSeconds: number;
   planName?: string | null;   // for the plan duration cap, re-checked against the vendor's own reading
   outputPutUrl: string;       // signed PUT URL — the dubbed file goes straight to GCS
@@ -89,14 +89,12 @@ export class DubbingProcessor extends WorkerHost {
 
   async process(job: Job<DubJobData>): Promise<{ dubbedUrl: string }> {
     const {
-      userId, projectId, inputGsUri, inputUrl, mimeType, isVideo, targetLanguage,
+      userId, projectId, inputUrl, isVideo, targetLanguage, targetAccent,
       durationSeconds, planName, outputPutUrl, outputContentType, outputPublicUrl,
     } = job.data;
 
     await job.updateProgress(0);
     await job.log('Starting dubbing...');
-
-    let workDir: string | null = null;
 
     try {
       const apiKey = getElevenLabsKey();
@@ -106,43 +104,37 @@ export class DubbingProcessor extends WorkerHost {
       await job.updateProgress(5);
 
       const languageLabel = supportedLanguages.find((l) => l.value === targetLanguage)?.label ?? targetLanguage;
-      workDir = await mkdtemp(join(tmpdir(), `dub-${projectId}-`));
 
-      // 1. Translate. Vertex reads the media straight from gs:// — no download needed
-      //    for this step, and no 50MB inline ceiling.
-      await job.log(`Transcribing and translating to ${languageLabel}...`);
-      const translatedText = await this.transcribeAndTranslate(inputGsUri, mimeType, languageLabel);
-      await job.updateProgress(25);
+      // 1. Hand ElevenLabs the public GCS URL. It fetches, transcribes, translates,
+      //    clones the speaker from the source audio and re-times the result. The
+      //    bytes never touch this worker on the way in.
+      await job.log(`Sending to ElevenLabs for ${languageLabel} dubbing...`);
+      const { dubbingId, expectedDurationSec } = await this.createElevenLabsDub(
+        apiKey, inputUrl, targetLanguage, targetAccent,
+      );
 
-      // 2. Make sure this creator has a voice. The first dub they run is what the
-      //    clone is built from; every dub after reuses it, so the voice stays theirs
-      //    across languages.
-      await this.throwIfCancelled(job.id!);
-      await this.updateJob(projectId, { status: 'cloning' });
-      const voiceId = await this.ensureVoiceClone(apiKey, userId, inputUrl, workDir, job);
-      await job.updateProgress(45);
-
-      // 3. Speak the translation in that voice.
-      await this.throwIfCancelled(job.id!);
-      await job.log('Generating dubbed audio in your voice...');
-      const dubbedAudio = await textToSpeech(apiKey, voiceId, translatedText, targetLanguage);
-      const audioPath = join(workDir, 'dubbed.mp3');
-      await writeFile(audioPath, dubbedAudio);
-      await job.updateProgress(70);
-
-      // 4. Audio in → ship the MP3. Video in → put the new track over the original.
-      await this.throwIfCancelled(job.id!);
-      let outputPath = audioPath;
-      if (isVideo) {
-        await job.log('Rebuilding the video with the dubbed audio...');
-        const sourcePath = join(workDir, 'source');
-        await this.downloadToFile(inputUrl, sourcePath);
-        outputPath = join(workDir, 'dubbed.mp4');
-        await muxAudioOverVideo(sourcePath, audioPath, outputPath);
+      // durationSeconds came from the browser and set both the price and the plan cap.
+      // This is the first independent reading of it, so check before the expensive
+      // part runs rather than after.
+      if (expectedDurationSec && !isDubDurationAllowed(planName, expectedDurationSec)) {
+        throw new Error(
+          `This clip is ${Math.round(expectedDurationSec)}s, over the ${maxDubSecondsForPlan(planName)}s limit on your plan.`,
+        );
       }
 
+      await this.throwIfCancelled(job.id!);
+      await this.updateJob(projectId, { status: 'cloning' });
+      await job.log('Cloning your voice and generating the dub...');
+
+      // 2. Poll until it reports done.
+      await this.waitForElevenLabsDub(apiKey, dubbingId, job);
+      await job.updateProgress(70);
+
+      // 3. Stream the result straight into the signed GCS PUT URL — piped, never
+      //    buffered, so a large MP4 stays off the heap.
+      await this.throwIfCancelled(job.id!);
       await job.log('Storing the dubbed file...');
-      await this.uploadToGcs(outputPath, outputPutUrl, outputContentType);
+      await this.streamDubToGcs(apiKey, dubbingId, targetLanguage, outputPutUrl, outputContentType);
       await job.updateProgress(80);
 
       // The result is now in GCS at the pre-signed location.
@@ -189,83 +181,113 @@ export class DubbingProcessor extends WorkerHost {
         );
       }
       throw error;
-    } finally {
-      if (workDir) await rm(workDir, { recursive: true, force: true }).catch(() => undefined);
     }
   }
 
   /**
-   * The creator's voice, cloned once and reused forever.
-   *
-   * The clone is built from the first media they dub. A stored id can still be stale —
-   * voices are deletable from the ElevenLabs dashboard — so it is verified before use
-   * and rebuilt from this job's audio when it has gone.
+   * Kick off the dub. `source_url` means ElevenLabs pulls the media itself, so we
+   * never proxy the upload. Voice cloning is left at its default (on): the output
+   * voice is cloned from the speaker in the source, which for a creator dubbing
+   * their own video is their own voice.
    */
-  private async ensureVoiceClone(
+  private async createElevenLabsDub(
     apiKey: string,
-    userId: string,
-    inputUrl: string,
-    workDir: string,
-    job: Job<DubJobData>,
-  ): Promise<string> {
-    const { data: profile } = await this.supabase
-      .from('profiles')
-      .select('elevenlabs_voice_id, full_name')
-      .eq('user_id', userId)
-      .single();
+    sourceUrl: string,
+    targetLanguage: string,
+    targetAccent?: string | null,
+  ): Promise<{ dubbingId: string; expectedDurationSec: number | null }> {
+    const form = new FormData();
+    form.append('source_url', sourceUrl);
+    form.append('target_lang', targetLanguage);
+    form.append('num_speakers', '0'); // auto-detect, so each speaker gets their own clone
+    if (targetAccent) form.append('target_accent', targetAccent);
 
-    const existing = profile?.elevenlabs_voice_id as string | undefined;
-    if (existing && (await voiceExists(apiKey, existing))) {
-      await job.log('Using your saved voice.');
-      return existing;
-    }
-
-    await job.log('Creating your voice clone from this recording — this is a one-time step.');
-    const sourcePath = join(workDir, 'voice-source');
-    await this.downloadToFile(inputUrl, sourcePath);
-
-    const samplePath = join(workDir, 'voice-sample.mp3');
-    await extractVoiceSample(sourcePath, samplePath);
-
-    const voiceName = `creator-${userId.slice(0, 8)}`;
-    const voiceId = await createVoiceClone(apiKey, samplePath, voiceName);
-
-    const { error } = await this.supabase
-      .from('profiles')
-      .update({
-        elevenlabs_voice_id: voiceId,
-        voice_sample_url: inputUrl,
-        voice_cloned_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId);
-
-    // A voice we cannot persist would be re-cloned on the next dub and leak a slot.
-    if (error) {
-      await deleteVoice(apiKey, voiceId);
-      throw new Error('We could not save your voice profile. Please try again.');
-    }
-
-    return voiceId;
-  }
-
-  private async downloadToFile(url: string, destination: string): Promise<void> {
-    const response = await fetch(url, { signal: AbortSignal.timeout(ELEVENLABS_TIMEOUT_MS) });
-    if (!response.ok) throw new Error(`Could not read the uploaded media (${response.status}).`);
-    await writeFile(destination, Buffer.from(await response.arrayBuffer()));
-  }
-
-  private async uploadToGcs(path: string, putUrl: string, contentType: string): Promise<void> {
-    const { readFile } = await import('fs/promises');
-    const body = await readFile(path);
-    const response = await fetch(putUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': contentType },
-      body: new Uint8Array(body),
+    const response = await fetch(`${ELEVENLABS_API}/dubbing`, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey },
+      body: form,
       signal: AbortSignal.timeout(ELEVENLABS_TIMEOUT_MS),
     });
+
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
-      throw new Error(`Failed to store the dubbed file (${response.status}): ${detail.slice(0, 300)}`);
+      // Cloned voices count against the workspace voice limit, and the dub is
+      // rejected outright when none are free — worth naming, it is not a retry.
+      if (response.status === 403 && /voice/i.test(detail)) {
+        throw new Error('Dubbing is temporarily unavailable — our voice capacity is full. Please try again later.');
+      }
+      throw new Error(`ElevenLabs dubbing failed (${response.status}): ${detail.slice(0, 400)}`);
+    }
+
+    const data = (await response.json()) as { dubbing_id?: string; expected_duration_sec?: number };
+    if (!data.dubbing_id) throw new Error('ElevenLabs did not return a dubbing id');
+
+    return {
+      dubbingId: data.dubbing_id,
+      expectedDurationSec: typeof data.expected_duration_sec === 'number' ? data.expected_duration_sec : null,
+    };
+  }
+
+  /** Poll until the dub reports `dubbed`. Bounded so a stuck job cannot pin a slot. */
+  private async waitForElevenLabsDub(apiKey: string, dubbingId: string, job: Job<DubJobData>): Promise<void> {
+    const deadline = Date.now() + ELEVENLABS_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+      await this.throwIfCancelled(job.id!);
+
+      const response = await fetch(`${ELEVENLABS_API}/dubbing/${dubbingId}`, {
+        headers: { 'xi-api-key': apiKey },
+      });
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '');
+        throw new Error(`ElevenLabs status check failed (${response.status}): ${detail.slice(0, 300)}`);
+      }
+
+      const data = (await response.json()) as { status?: string; error?: string };
+      if (data.status === 'dubbed') return;
+      if (data.status === 'failed') {
+        throw new Error(`Dubbing failed: ${data.error ?? 'ElevenLabs did not say why'}`);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, ELEVENLABS_POLL_INTERVAL_MS));
+    }
+
+    throw new Error('Dubbing took too long and timed out. Please try a shorter clip.');
+  }
+
+  /**
+   * Pipe the finished dub into the pre-signed GCS PUT URL. Passing the response body
+   * straight through as the request body streams it, so a dubbed MP4 that can run to
+   * hundreds of MB is never buffered here.
+   */
+  private async streamDubToGcs(
+    apiKey: string,
+    dubbingId: string,
+    targetLanguage: string,
+    putUrl: string,
+    contentType: string,
+  ): Promise<void> {
+    const response = await fetch(`${ELEVENLABS_API}/dubbing/${dubbingId}/audio/${targetLanguage}`, {
+      headers: { 'xi-api-key': apiKey },
+      signal: AbortSignal.timeout(ELEVENLABS_TIMEOUT_MS),
+    });
+
+    if (!response.ok || !response.body) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(`Could not download the dubbed file (${response.status}): ${detail.slice(0, 300)}`);
+    }
+
+    const upload = await fetch(putUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: response.body,
+      duplex: 'half', // required by undici when the body is a stream
+      signal: AbortSignal.timeout(ELEVENLABS_TIMEOUT_MS),
+    } as RequestInit & { duplex: 'half' });
+
+    if (!upload.ok) {
+      const detail = await upload.text().catch(() => '');
+      throw new Error(`Failed to store the dubbed file (${upload.status}): ${detail.slice(0, 300)}`);
     }
   }
 

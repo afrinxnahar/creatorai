@@ -37,12 +37,13 @@ export function isDubDurationAllowed(planName: string | null | undefined, durati
 export const DUBBING_CANCEL_PREFIX = 'dubbing:cancel:';
 
 /**
- * The 29 languages eleven_multilingual_v2 supports — the model dubbing synthesises
- * with. Offering anything outside this list produces audio in the wrong language
- * rather than an error, so the dropdown must mirror it exactly.
+ * The 29 target languages the ElevenLabs dubbing API accepts — it synthesises with
+ * eleven_multilingual_v2, so this is that model's coverage. Offering anything outside
+ * the list produces audio in the wrong language rather than an error, so the dropdown
+ * must mirror it exactly.
  *
  * Norwegian was dropped when dubbing moved to ElevenLabs: it only exists on
- * eleven_flash_v2_5, which is tuned for latency over long-form stability.
+ * eleven_flash_v2_5, which dubbing does not use.
  */
 export const supportedLanguages = [
   { value: 'ar', label: 'Arabic' },
@@ -76,10 +77,41 @@ export const supportedLanguages = [
   { value: 'zh', label: 'Chinese (Mandarin)' },
 ] as const;
 
-/** Long-form stable and covers all of the above. */
-export const ELEVENLABS_TTS_MODEL = 'eleven_multilingual_v2';
-
 export type SupportedLanguage = typeof supportedLanguages[number]['value'];
+
+/**
+ * Accents the dubbing API can aim for, per language. `target_accent` is marked
+ * experimental upstream, so treat these as a preference rather than a guarantee —
+ * a language with no entry simply offers the default accent.
+ */
+export const accentsByLanguage: Partial<Record<SupportedLanguage, { value: string; label: string }[]>> = {
+  en: [
+    { value: 'american', label: 'American' },
+    { value: 'british', label: 'British' },
+    { value: 'australian', label: 'Australian' },
+    { value: 'indian', label: 'Indian' },
+  ],
+  es: [
+    { value: 'castilian', label: 'Spain (Castilian)' },
+    { value: 'latin american', label: 'Latin American' },
+  ],
+  pt: [
+    { value: 'brazilian', label: 'Brazilian' },
+    { value: 'european', label: 'European' },
+  ],
+  fr: [
+    { value: 'french', label: 'France' },
+    { value: 'canadian', label: 'Canadian' },
+  ],
+  zh: [
+    { value: 'mandarin', label: 'Mandarin' },
+    { value: 'cantonese', label: 'Cantonese' },
+  ],
+};
+
+export function accentsFor(language: string): { value: string; label: string }[] {
+  return accentsByLanguage[language as SupportedLanguage] ?? [];
+}
 
 // murfLocaleMap lived here — a locale table for Murf, which stopped powering dubbing
 // two providers ago and had no readers left.
