@@ -29,7 +29,8 @@ interface IdeaCardProps {
 
 export default function IdeaCard({ idea, index, ideationId }: IdeaCardProps) {
   const router = useRouter();
-  const [talkingPointsOpen, setTalkingPointsOpen] = useState(false);
+  // Open by default: talking points now sit in their own column with room to breathe.
+  const [talkingPointsOpen, setTalkingPointsOpen] = useState(true);
   const momentum = MOMENTUM_CONFIG[idea.trendMomentum] || MOMENTUM_CONFIG.stable;
   const MomentumIcon = momentum.icon;
 
@@ -77,69 +78,79 @@ export default function IdeaCard({ idea, index, ideationId }: IdeaCardProps) {
         </CardHeader>
 
         <CardContent className="space-y-3 sm:space-y-4 pt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-2.5 sm:p-3 bg-blue-50/60 dark:bg-blue-950/20 rounded-lg border border-blue-100/60 dark:border-blue-900/20">
-              <h4 className="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-1">Why This Works</h4>
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{idea.whyItWorks}</p>
+          {/* Two columns from lg up: the pitch on the left, the SEO/prep material on the
+              right, which is what used to leave the page half empty. Single column below. */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div className="lg:col-span-3 space-y-3 sm:space-y-4">
+              <div className="p-2.5 sm:p-3 bg-blue-50/60 dark:bg-blue-950/20 rounded-lg border border-blue-100/60 dark:border-blue-900/20">
+                <h4 className="text-[10px] sm:text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-1">Why This Works</h4>
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{idea.whyItWorks}</p>
+              </div>
+              <div className="p-2.5 sm:p-3 bg-amber-50/60 dark:bg-amber-950/20 rounded-lg border border-amber-100/60 dark:border-amber-900/20">
+                <h4 className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">Hook Angle</h4>
+                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{idea.hookAngle}</p>
+              </div>
+
+              {idea.referenceSignals?.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Reference Signals</h4>
+                  <div className="space-y-1">
+                    {idea.referenceSignals.map((ref, i) => (
+                      <a key={i} href={ref.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">
+                        <ExternalLink className="h-3 w-3 shrink-0" /> <span className="truncate">{ref.title}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="p-2.5 sm:p-3 bg-amber-50/60 dark:bg-amber-950/20 rounded-lg border border-amber-100/60 dark:border-amber-900/20">
-              <h4 className="text-[10px] sm:text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">Hook Angle</h4>
-              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{idea.hookAngle}</p>
+
+            <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+              {idea.targetKeywords?.length > 0 && (
+                <div className="p-2.5 sm:p-3 bg-purple-50/50 dark:bg-purple-950/20 rounded-lg border border-purple-100/60 dark:border-purple-900/20">
+                  <h4 className="text-[10px] sm:text-xs font-semibold text-purple-700 dark:text-purple-400 uppercase tracking-wide mb-1.5">Target Keywords</h4>
+                  <div className="flex flex-wrap gap-1 sm:gap-1.5">
+                    {idea.targetKeywords.map((kw, i) => (
+                      <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs bg-white/70 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5">{kw}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {idea.searchIntentSummary && (
+                <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-100 dark:border-slate-700/40">
+                  <h4 className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    <Target className="h-3 w-3 inline mr-1" />
+                    Search Intent
+                  </h4>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{idea.searchIntentSummary}</p>
+                </div>
+              )}
+
+              {idea.talkingPoints?.length > 0 && (
+                <Collapsible
+                  open={talkingPointsOpen}
+                  onOpenChange={setTalkingPointsOpen}
+                  className="rounded-lg border border-slate-100 dark:border-slate-700/40 bg-slate-50 dark:bg-slate-800/40"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-full justify-between text-xs sm:text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/60">
+                      Talking Points ({idea.talkingPoints.length})
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${talkingPointsOpen ? "rotate-180" : ""}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <ol className="space-y-1.5 px-4 pb-3 pl-7">
+                      {idea.talkingPoints.map((point, i) => (
+                        <li key={i} className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 list-decimal leading-relaxed">{point}</li>
+                      ))}
+                    </ol>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </div>
           </div>
-
-          {idea.targetKeywords?.length > 0 && (
-            <div>
-              <h4 className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Target Keywords</h4>
-              <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                {idea.targetKeywords.map((kw, i) => (
-                  <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-0.5">{kw}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {idea.searchIntentSummary && (
-            <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-100 dark:border-slate-700/40">
-              <h4 className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                <Target className="h-3 w-3 inline mr-1" />
-                Search Intent
-              </h4>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{idea.searchIntentSummary}</p>
-            </div>
-          )}
-
-          {idea.talkingPoints?.length > 0 && (
-            <Collapsible open={talkingPointsOpen} onOpenChange={setTalkingPointsOpen}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-between text-xs sm:text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                  Talking Points ({idea.talkingPoints.length})
-                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${talkingPointsOpen ? "rotate-180" : ""}`} />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <ol className="space-y-1.5 mt-2 pl-4">
-                  {idea.talkingPoints.map((point, i) => (
-                    <li key={i} className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 list-decimal leading-relaxed">{point}</li>
-                  ))}
-                </ol>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          {idea.referenceSignals?.length > 0 && (
-            <div>
-              <h4 className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Reference Signals</h4>
-              <div className="space-y-1">
-                {idea.referenceSignals.map((ref, i) => (
-                  <a key={i} href={ref.url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">
-                    <ExternalLink className="h-3 w-3 shrink-0" /> {ref.title}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
             <Button

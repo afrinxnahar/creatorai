@@ -45,15 +45,9 @@ export default function IdeationDetailPage() {
       <div className="container py-8 space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-6 w-96" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
-          <div className="lg:col-span-8 space-y-4">
-            <Skeleton className="h-64 rounded-lg" />
-            <Skeleton className="h-64 rounded-lg" />
-          </div>
-          <div className="lg:col-span-4 space-y-4">
-            <Skeleton className="h-48 rounded-lg" />
-            <Skeleton className="h-48 rounded-lg" />
-          </div>
+        <div className="space-y-4 sm:space-y-6 mt-8">
+          <Skeleton className="h-72 w-full rounded-lg" />
+          <Skeleton className="h-72 w-full rounded-lg" />
         </div>
       </div>
     );
@@ -110,8 +104,8 @@ export default function IdeationDetailPage() {
       </Link>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 break-words">
             {job.niche_focus || (job.auto_mode ? "Auto-generated Ideas" : "Ideation Results")}
           </h1>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
@@ -122,11 +116,12 @@ export default function IdeationDetailPage() {
             )}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {result.ideas.length > 1 && (
             <Button
               variant="outline"
               size="sm"
+              className="h-9 flex-1 sm:flex-none text-xs sm:text-sm border-slate-200 dark:border-slate-700 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-500/10 dark:hover:text-purple-300"
               onClick={() => {
                 if (hasComparisonMetrics) {
                   router.push(`/dashboard/research/${job.id}/metrics`);
@@ -141,15 +136,16 @@ export default function IdeationDetailPage() {
           )}
           <IdeationExportMenu ideationId={job.id} />
           <Button
+            size="sm"
             onClick={() => router.push("/dashboard/research/new")}
-            className="text-xs sm:text-sm bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-50 dark:hover:bg-slate-200 dark:text-slate-900"
+            className="h-9 flex-1 sm:flex-none text-xs sm:text-sm bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-50 dark:hover:bg-slate-200 dark:text-slate-900 transition-all hover:shadow-lg hover:shadow-purple-500/10"
           >
-            <Sparkles className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" /> New Ideation
+            <Sparkles className="mr-1.5 h-3.5 w-3.5 sm:h-4 sm:w-4" /> New Ideation
           </Button>
         </div>
       </div>
 
-      <main className="max-w-3xl space-y-6">
+      <main className="w-full space-y-4 sm:space-y-6">
         {result.ideas.map((idea, index) => (
           <IdeaCard key={idea.id || index} idea={idea} index={index} ideationId={job.id} />
         ))}
