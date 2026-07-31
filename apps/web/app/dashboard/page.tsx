@@ -12,6 +12,10 @@ import { getThumbnails, type ThumbnailJob } from "@/lib/api/getThumbnails";
 import { getDubbings, type DubbingProject } from "@/lib/api/getDubbings";
 import { api } from "@/lib/api-client";
 import type { IdeationJob, SubtitleResponse } from "@repo/validation"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@repo/ui/alert-dialog";
 
 export interface DashboardData {
   scripts: Script[];
@@ -31,6 +35,7 @@ export default function Dashboard() {
   const [isConnectingYoutube, setIsConnectingYoutube] = useState(false)
   const [isDisconnectingYoutube, setIsDisconnectingYoutube] = useState(false)
   const [showGmailDialog, setShowGmailDialog] = useState(false)
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false)
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -79,6 +84,16 @@ export default function Dashboard() {
     if (!user || !supabase) return
     setIsDisconnectingYoutube(true)
     try {
+      // The style profile is derived entirely from the connected channel, so it goes
+      // with it. Generated content (scripts, thumbnails, subtitles, dubs) is the
+      // user's work and is deliberately left alone.
+      const { error: styleError } = await supabase
+        .from("user_style")
+        .delete()
+        .eq("user_id", user.id)
+
+      if (styleError) throw styleError
+
       const { error } = await supabase
         .from("profiles")
         .update({ ai_trained: false, youtube_connected: false })
@@ -86,7 +101,8 @@ export default function Dashboard() {
         .single()
 
       if (error) throw error
-      toast.success("YouTube channel disconnected successfully.")
+      setShowDisconnectDialog(false)
+      toast.success("YouTube channel disconnected. Your trained style data has been deleted.")
       await fetchUserProfile(user.id)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to disconnect YouTube channel."
@@ -111,9 +127,47 @@ export default function Dashboard() {
         data={data}
         connectYoutubeChannel={handleConnectYoutube}
         connectingYoutube={isConnectingYoutube}
-        disconnectYoutubeChannel={handleDisconnectYoutube}
+        disconnectYoutubeChannel={() => setShowDisconnectDialog(true)}
         disconnectingYoutube={isDisconnectingYoutube}
       />
+
+      <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect your YouTube channel?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left">
+                <p>
+                  Disconnecting also deletes the AI style profile we trained on your channel —
+                  your tone, pacing, humour, structure and the video analysis behind them.
+                  This cannot be undone.
+                </p>
+                <p>
+                  Everything you have already created stays safe: your scripts, thumbnails,
+                  subtitles, dubs and ideas are untouched.
+                </p>
+                <p>
+                  To get personalised results again you would need to reconnect and train
+                  from scratch
+                  {profile?.free_training_used
+                    ? ", which costs credits — the free first training has already been used."
+                    : "."}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDisconnectingYoutube}>Keep my channel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDisconnectYoutube() }}
+              disabled={isDisconnectingYoutube}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDisconnectingYoutube ? "Disconnecting..." : "Disconnect and delete style data"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <GmailPromptDialog
         open={showGmailDialog}
