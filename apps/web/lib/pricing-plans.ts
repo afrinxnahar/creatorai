@@ -96,10 +96,10 @@ export const MARKETING_PLANS: MarketingPlan[] = [
     name: "Scale",
     priceMonthly: 599,
     priceAnnualMonthly: null,
-    credits: 150000,
+    credits: 100000,
     tagline: "Best for agencies and networks running high-volume content operations.",
     features: [
-      "150,000 credits every month",
+      "100,000 credits every month",
       "Every feature included",
       "Built for agencies & networks",
       "Maximum generation throughput",

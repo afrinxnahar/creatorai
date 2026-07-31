@@ -4,20 +4,34 @@ export const TOKENS_PER_CREDIT = 1000;
 // Margin policy (single source of truth for how features are priced in credits)
 //
 // Every feature must clear TARGET_GROSS_MARGIN at the LOWEST price a credit sells
-// for across active plans (CREDIT_FLOOR_USD). After the plan recalibration
-// (Scale trimmed to 100k credits) the floor is ~$0.006/credit (Business/Scale).
-// So a credit may cost us at most MAX_COGS_PER_CREDIT_USD in vendor spend.
+// for across active plans (CREDIT_FLOOR_USD). So a credit may cost us at most
+// MAX_COGS_PER_CREDIT_USD in vendor spend.
+//
+// What a credit actually sells for, per plan:
+//   Creator          $24 / 3,000   = $0.00800
+//   Creator annual   $19 / 3,000   = $0.00633
+//   Pro              $49 / 8,000   = $0.006125
+//   Pro annual       $39 / 8,000   = $0.004875  ← the floor
+//   Business        $299 / 50,000  = $0.00598
+//   Scale           $599 / 100,000 = $0.00599   (100k per 20260712 recalibration)
+//
 //
 // Multipliers below are DERIVED from this rule using real 2026 vendor rates:
-//   Gemini 3.5 Flash  $1.50/M in, $9/M out  → ~$0.006 / 1k tokens (40/60 blend)
+//   Gemini 3.5 Flash        $1.50/M in, $9/M out  → ~$0.006 / 1k tokens (40/60 blend)
 //   Gemini 2.5 Flash Image  $0.039 / image
-//   Gemini Omni Flash video  $0.10 / second
-//   ElevenLabs dubbing  $0.50 / min = $0.0083 / second
-// See docs / the business-model doc for the full working. All are env-overridable.
+//   Gemini Omni Flash video $0.10 / second
+//   ElevenLabs Dubbing API  ~$0.24 / min = $0.004 / second (Pro-tier overage rate)
+// All are env-overridable.
+//
+// NOTE (unpriced drift, deliberate): correcting the floor from $0.006 to $0.004875
+// means THUMBNAIL (33) and VIDEO_GENERATION (85) now clear ~76%, not 80%. Holding
+// target would need 40 and 103. Left alone on purpose — that is a price rise for
+// existing users, which is a business call, not a bug fix. The token-based text
+// multipliers (6) still clear 79.5%, which is target within rounding.
 // ─────────────────────────────────────────────────────────────────────────────
 export const TARGET_GROSS_MARGIN = 0.8;
-export const CREDIT_FLOOR_USD = 0.006; // lowest plan $/credit after recalibration
-export const MAX_COGS_PER_CREDIT_USD = CREDIT_FLOOR_USD * (1 - TARGET_GROSS_MARGIN); // $0.0012
+export const CREDIT_FLOOR_USD = 0.004875; // Pro annual: $39/mo ÷ 8,000 credits
+export const MAX_COGS_PER_CREDIT_USD = CREDIT_FLOOR_USD * (1 - TARGET_GROSS_MARGIN); // $0.000975
 
 /** Credits to charge for a unit of work costing `cogsUsd`, holding the target margin. */
 export function creditsForCost(cogsUsd: number): number {
@@ -30,7 +44,19 @@ export const SCRIPT_CREDIT_MULTIPLIER = 6;
 export const SUBTITLE_CREDIT_MULTIPLIER = 6;
 export const IDEATION_CREDIT_MULTIPLIER = 6;
 export const STORY_BUILDER_CREDIT_MULTIPLIER = 6;
-export const TRAIN_AI_CREDIT_MULTIPLIER = 6; // input-heavy → margin runs higher than 80%
+
+// Train AI genuinely IS input-heavy: the run attaches ~3 × 150s of sampled video
+// (low media resolution, 0.1 fps ⇒ ~46 tokens/sec) against ~5k tokens of structured
+// output, so ~22k in / 5k out ⇒ ~$0.0029 per 1k tokens blended. creditsForCost gives
+// 3; we keep 6 for consistency with the other text features, which runs ~90%.
+// This only holds while the pipeline SAMPLES video — sending full videos at default
+// resolution is ~6× the input tokens and blows past what one training should cost.
+export const TRAIN_AI_CREDIT_MULTIPLIER = 6;
+
+// The first training is free (see FREE_FIRST_TRAINING): it is the onboarding step
+// that makes every other feature personalised, and a user who never trains gets
+// generic output everywhere and churns. Retraining bills normally.
+export const FREE_FIRST_TRAINING = true;
 
 // Thumbnails bill PER IMAGE, not per token: an image costs $0.039 flat, which the
 // text-token rate can't capture. creditsForCost(0.039) = 33 credits/image ⇒ ~82%.
@@ -39,9 +65,19 @@ export const THUMBNAIL_CREDIT_MULTIPLIER = 33; // credits per generated image
 // Video (Omni) billed per SECOND: creditsForCost(0.10) = 84 ⇒ an 8s clip = 680 credits.
 export const VIDEO_GENERATION_CREDIT_MULTIPLIER = 85;
 
-// Dubbing billed per SECOND of source audio ($0.0083/s): creditsForCost(0.0083) = 7,
-// but we keep 15/sec (already ~91% margin) as a headroom buffer on clone-time variance.
-export const DUBBING_CREDIT_MULTIPLIER = 15;
+// Dubbing runs on the ElevenLabs Dubbing API (transcribe + translate + clone + mux
+// in one call). ElevenLabs bills ~2,000 of THEIR credits per source minute; at the
+// Pro-tier overage rate that is ~$0.24/min = $0.004/second.
+//
+// ponytail: 3/sec is a deliberate under-charge. creditsForCost($0.004) = 5, which is
+// what holds the 80% target at CREDIT_FLOOR_USD; 3/sec lands at ~73% instead. Chosen
+// so a Starter user's 500 credits buys two 60s trial dubs (180 each) rather than one,
+// and so Creator gets ~16 min/month instead of the 3m20s the old 15/sec allowed.
+// It is affordable right now because the account is on an ElevenLabs startup grant
+// (~33M credits ≈ 16,500 dubbing minutes), during which marginal COGS is $0.
+// Raise to 5 via the DUBBING_CREDIT_MULTIPLIER env var when the grant runs out —
+// no deploy needed.
+export const DUBBING_CREDIT_MULTIPLIER = 3;
 
 export const FeatureType = {
   SCRIPT_GENERATION: 'script_generation',
@@ -111,6 +147,57 @@ export function hasEnoughCredits(userCredits: number, requiredCredits: number): 
 
 export function getMinimumCreditsForGemini(multiplier = SCRIPT_CREDIT_MULTIPLIER): number {
   return Math.max(1, multiplier);
+}
+
+// ── Train AI ────────────────────────────────────────────────────────────────
+// How much video the pipeline actually sends per source video. Two clipped windows
+// (hook + a mid-video sample) rather than the whole thing: style is densest at the
+// open, and this decouples our cost from the length the user picked. A 4-minute
+// video and a 2-hour video cost exactly the same to train on.
+export const TRAIN_AI_HOOK_WINDOW_SECONDS = 90;
+export const TRAIN_AI_MID_WINDOW_SECONDS = 60;
+export const TRAIN_AI_SECONDS_PER_VIDEO = TRAIN_AI_HOOK_WINDOW_SECONDS + TRAIN_AI_MID_WINDOW_SECONDS;
+
+// Hard cap on videos analysed per run. Each video becomes 2 fileData parts, and
+// Gemini limits video parts per request — 3 videos (6 parts) stays well inside it.
+// More than 3 selected → we keep the 3 most-viewed (best style signal, bounded cost).
+export const TRAIN_AI_MAX_VIDEOS = 3;
+
+// Frame sampling rate. Default is 1 fps at 258 tokens/frame, which is ~89% of the
+// bill spent on frames — but 9 of the 10 things we extract (tone, vocabulary, pacing,
+// humour, structure, hooks, direct-address ratio, stats usage, emotional tone) live in
+// the AUDIO. Only visual_style needs pictures, and that reads fine off a frame every
+// 10s. Pair with mediaResolution=LOW, which drops frames to ~66 tokens.
+export const TRAIN_AI_VIDEO_FPS = 0.1;
+
+// Tokens/sec of sampled video at media_resolution=low + fps=0.1:
+// ~66-token frames at 0.1 fps (≈7) + 32 audio + ~7 timestamps ≈ 46.
+export const TRAIN_AI_TOKENS_PER_VIDEO_SECOND = 46;
+
+// Structured output of the single analysis call: style block + transcripts + hooks
+// + channel intelligence. Measured around 5k; 8k leaves room before we under-reserve.
+const TRAIN_AI_ESTIMATED_OUTPUT_TOKENS = 8000;
+
+// Hard ceiling for that call. On Gemini 3.x this budget covers thinking tokens too,
+// so it sits well above the estimate — too low truncates mid-JSON.
+export const TRAIN_AI_MAX_OUTPUT_TOKENS = 16000;
+
+/**
+ * What to require in the balance BEFORE the Gemini call runs — the pipeline used to
+ * check credits only after every API call had already been paid for, so an
+ * out-of-credit user burned full COGS and got charged nothing.
+ *
+ * Deliberately an over-estimate: reserving too much only means an edge-case user is
+ * asked to top up, while reserving too little means we spend money we cannot bill.
+ */
+export function estimateTrainingCredits(
+  videoCount: number,
+  multiplier = TRAIN_AI_CREDIT_MULTIPLIER,
+): number {
+  const videos = Math.min(Math.max(videoCount, 1), TRAIN_AI_MAX_VIDEOS);
+  const inputTokens = videos * TRAIN_AI_SECONDS_PER_VIDEO * TRAIN_AI_TOKENS_PER_VIDEO_SECOND;
+  const totalTokens = inputTokens + TRAIN_AI_ESTIMATED_OUTPUT_TOKENS;
+  return Math.ceil(totalTokens / TOKENS_PER_CREDIT) * multiplier;
 }
 
 export function getMinimumCreditsForIdeation(multiplier = IDEATION_CREDIT_MULTIPLIER): number {
