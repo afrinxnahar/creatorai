@@ -143,9 +143,17 @@ export function OnboardingDashboardView(props: SharedProps) {
 
               <span className="text-[10px] font-black uppercase tracking-widest text-purple-500 dark:text-purple-400 mb-2 bg-purple-50 dark:bg-purple-500/10 px-2 py-1 rounded-sm">Phase 02</span>
               <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-50 mb-3">Train AI Studio</h3>
-              <p className="text-slate-500 dark:text-slate-400 mb-10 max-w-[300px] leading-relaxed text-sm md:text-base">
+              <p className="text-slate-500 dark:text-slate-400 mb-4 max-w-[300px] leading-relaxed text-sm md:text-base">
                 Process your channel's videos to generate a highly personalized AI model tailored exactly to you.
               </p>
+
+              {/* The free run is once per account: keyed off free_training_used, which
+                  survives a disconnect, not ai_trained, which does not. */}
+              {!props.profile?.free_training_used && (
+                <p className="mb-6 text-sm font-semibold text-green-700 dark:text-green-400">
+                  Your first training is free. No credits charged.
+                </p>
+              )}
 
               <div className="mt-auto w-full max-w-[200px]">
                 <TooltipProvider delayDuration={0}>
