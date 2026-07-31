@@ -3,21 +3,21 @@ import { Job, Queue } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createSupabaseClient, getSupabaseServiceEnv, SupabaseClient } from '@repo/supabase';
-import { Thumbnail, Transcript, VideoData } from "@repo/validation";
+import { Thumbnail } from "@repo/validation";
 import { GoogleGenAI } from '@google/genai';
-import { getGenAI, GEMINI_TEXT_MODEL } from './utils/genai';
+import { getGenAI } from './utils/genai';
 import {
   validateInputs,
   validateEnvironment,
   fetchChannelData,
   manageYouTubeToken,
   fetchVideoData,
-  analyzeStyle,
-  generateEmbedding,
-  generateTopicEmbedding,
+  analyzeChannel,
+  generateStyleEmbeddings,
   saveStyleData,
   extractChannelIntelligence,
-  enrichChannelIntelligenceWithAI,
+  selectVideosForTraining,
+  resolveTrainingCharge,
 } from './utils/train-ai';
 
 const CANCEL_PREFIX = 'train-ai:cancel:';
@@ -84,43 +84,58 @@ export class TrainAiProcessor extends WorkerHost {
       await job.updateProgress(20);
       await job.log('Fetching video data...');
 
-      const videoData = await fetchVideoData(videoUrls, accessToken, channelData.channel_id);
+      const allVideoData = await fetchVideoData(videoUrls, accessToken, channelData.channel_id);
+
+      // Cap what we analyse (most-viewed wins) so cost stays bounded no matter how
+      // many videos were selected or how long they are.
+      const { videos: videoData, urls: analysedUrls } = selectVideosForTraining(allVideoData, videoUrls);
+
+      // Settle affordability BEFORE spending anything at Gemini. Throws
+      // "Insufficient credits." for a retrain the user cannot cover; the first
+      // training is free and always passes.
+      await this.throwIfCancelled(job.id!);
+      const charge = await resolveTrainingCharge(this.supabase, userId, videoData.length);
+      await job.log(
+        charge.isFirstTraining
+          ? 'First training is free — no credits will be charged.'
+          : 'Credits reserved for retraining.',
+      );
 
       await this.throwIfCancelled(job.id!);
-      await job.updateProgress(30);
-      await job.log('Processing transcripts and thumbnails...');
+      await job.updateProgress(35);
+      await job.log('Watching your videos and analyzing style...');
 
-      const { transcripts, thumbnails, totalVideoTokens } =
-        await this.processVideoAssets(videoData, videoUrls);
-
-      totalConsumedTokens += totalVideoTokens;
-
-      await this.throwIfCancelled(job.id!);
-      await job.updateProgress(50);
-      await job.log('Analyzing style and embedding...');
-
-      const { styleAnalysis, totalStyleTokens } =
-        await analyzeStyle(this.genAI, channelData, videoData, videoUrls);
+      // ONE call: style + transcripts + hooks + channel intelligence, with the video
+      // clips actually attached (see analyzeChannel).
+      const { styleAnalysis, transcripts, aiIntelligence, totalStyleTokens } =
+        await analyzeChannel(this.genAI, channelData, videoData, analysedUrls);
 
       totalConsumedTokens += totalStyleTokens;
 
-      await this.throwIfCancelled(job.id!);
-      const embedding = await generateEmbedding(this.genAI, styleAnalysis);
+      const thumbnails: Thumbnail[] = videoData.map((v) => ({
+        videoId: v.id,
+        thumbnailUrl: v.thumbnailUrl,
+      }));
 
       await this.throwIfCancelled(job.id!);
       await job.updateProgress(70);
       await job.log('Extracting channel intelligence...');
 
-      const baseIntelligence = extractChannelIntelligence(videoData, transcripts);
-      const { enriched: channelIntelligence, tokens: intelTokens } =
-        await enrichChannelIntelligenceWithAI(this.genAI, baseIntelligence, channelData);
-      totalConsumedTokens += intelTokens;
+      // Local aggregation over the FULL selection (not just the analysed clips) —
+      // averages and cadence are better with every video the user picked.
+      const channelIntelligence = extractChannelIntelligence(allVideoData, transcripts, aiIntelligence);
 
       await this.throwIfCancelled(job.id!);
       await job.updateProgress(80);
-      await job.log('Generating topic embedding...');
+      await job.log('Generating embeddings...');
 
-      const topicEmbedding = await generateTopicEmbedding(this.genAI, channelIntelligence, channelData);
+      // Both vectors in one batched embedContent call.
+      const { embedding, topicEmbedding } = await generateStyleEmbeddings(
+        this.genAI,
+        styleAnalysis,
+        channelIntelligence,
+        channelData,
+      );
 
       await this.throwIfCancelled(job.id!);
       await job.updateProgress(85);
@@ -137,6 +152,7 @@ export class TrainAiProcessor extends WorkerHost {
         totalConsumedTokens,
         channelIntelligence,
         topicEmbedding,
+        charge,
       );
 
       await job.updateProgress(100);
@@ -151,79 +167,10 @@ export class TrainAiProcessor extends WorkerHost {
     }
   }
 
-  private async processVideoAssets(
-    videos: VideoData[],
-    videoUrls: string[],
-  ): Promise<{
-    transcripts: Transcript[];
-    thumbnails: Thumbnail[];
-    totalVideoTokens: number;
-  }> {
-    const transcripts: Transcript[] = [];
-    const thumbnails: Thumbnail[] = [];
-    let totalVideoTokens = 0;
-
-    for (const [index, video] of videos.entries()) {
-      const videoUrl = videoUrls[index];
-      if (!videoUrl) {
-        throw new Error(`Missing videoUrl for index ${index} (video id: ${video.id})`);
-      }
-
-      const prompt = `Analyze this YouTube video: ${videoUrl}. 
-      Task: Transcribe the video into structured JSON. 
-      Include the full text and timed segments.`;
-
-      const schema = {
-        type: "object",
-        properties: {
-          videoId: { type: "string" },
-          transcriptText: { type: "string" },
-          segments: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                start: { type: "number" },
-                end: { type: "number" },
-                text: { type: "string" }
-              },
-              required: ["start", "end", "text"]
-            }
-          }
-        },
-        required: ["videoId", "transcriptText", "segments"],
-      };
-
-      const model = GEMINI_TEXT_MODEL;
-
-      const result: any = await this.genAI.models.generateContent({
-        model,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: "application/json",
-          responseJsonSchema: schema,
-          temperature: 0,
-          maxOutputTokens: 30000
-        },
-      });
-
-      let parsed = JSON.parse(result.text);
-
-      if (!parsed) {
-        throw new Error(`Gemini failed to return structured data for video ${video.id}`);
-      }
-
-      transcripts.push({
-        videoId: video.id,
-        transcriptText: parsed.transcriptText,
-        segments: parsed.segments,
-      });
-
-      thumbnails.push({ videoId: video.id, thumbnailUrl: video.thumbnailUrl });
-
-      totalVideoTokens += result?.usageMetadata?.totalTokenCount ?? 0;
-    }
-
-    return { transcripts, thumbnails, totalVideoTokens };
-  }
+  // processVideoAssets lived here: one generateContent call per video that interpolated
+  // the YouTube URL into a text prompt and asked for a transcript. Nothing was ever
+  // attached, so Gemini invented the transcript from the title and description — up to
+  // 30k output tokens of fiction per video, which every downstream style profile was
+  // then built on. analyzeChannel attaches the real clips and returns the transcripts
+  // in the same response, so this whole loop is gone.
 }
