@@ -165,6 +165,23 @@ export function VideoUrlForm({
                         </p>
                     )}
 
+                    {/* Cost. The first training is free — say so plainly, it is the step
+                        that makes every other feature sound like the creator. */}
+                    {!isTraining && (
+                        <p className="text-sm text-center w-full">
+                            {isAiTrained ? (
+                                <span className="text-slate-500 dark:text-slate-400">
+                                    Re-training costs credits. Pick any
+                                    videos you like;
+                                </span>
+                            ) : (
+                                <span className="font-medium text-green-700 dark:text-green-400">
+                                    Your first training is free. No credits will be charged.
+                                </span>
+                            )}
+                        </p>
+                    )}
+
                     {/* Action button */}
                     <div className="flex justify-end w-full">
                         <Button

@@ -59,7 +59,8 @@ User profile data and credits system.
 | `referred_by` | varchar(10) | Referral code of referrer |
 | `total_referrals` | integer | Count of successful referrals |
 | `referral_credits` | integer | Credits earned from referrals |
-| `ai_trained` | boolean | Whether AI has learned user's style |
+| `ai_trained` | boolean | Whether AI has learned user's style (reset on disconnect) |
+| `free_training_used` | boolean | One-way flag: the free first training has been spent (never reset) |
 | `youtube_connected` | boolean | YouTube OAuth status |
 | `avatar_url` | text | Profile picture URL |
 | `language` | text | Preferred language (default: 'en') |

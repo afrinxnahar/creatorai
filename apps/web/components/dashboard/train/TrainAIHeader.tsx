@@ -7,10 +7,12 @@ import { CheckCircle2, XCircle, Youtube, Bot, Coins } from "lucide-react"
 interface TrainAIHeaderProps {
   isYtConnected: boolean
   isAiTrained: boolean
+  /** True once the account has spent its one free run — survives disconnect/reconnect. */
+  freeTrainingUsed?: boolean
   lastCreditsConsumed: number | null
 }
 
-export function TrainAIHeader({ isYtConnected, isAiTrained, lastCreditsConsumed }: TrainAIHeaderProps) {
+export function TrainAIHeader({ isYtConnected, isAiTrained, freeTrainingUsed, lastCreditsConsumed }: TrainAIHeaderProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -65,7 +67,21 @@ export function TrainAIHeader({ isYtConnected, isAiTrained, lastCreditsConsumed 
             className="gap-1.5 py-1 px-2.5 text-slate-600 dark:text-slate-400"
           >
             <Coins className="h-3.5 w-3.5" />
-            {lastCreditsConsumed} credit{lastCreditsConsumed !== 1 ? "s" : ""} used
+            {lastCreditsConsumed === 0
+              ? "Free training"
+              : `${lastCreditsConsumed} credit${lastCreditsConsumed !== 1 ? "s" : ""} used`}
+          </Badge>
+        )}
+
+        {/* The free run is once per account, so key it off freeTrainingUsed, not
+            isAiTrained — a reconnected channel resets isAiTrained but still pays. */}
+        {!freeTrainingUsed && (
+          <Badge
+            variant="outline"
+            className="gap-1.5 py-1 px-2.5 border-green-300 text-green-700 dark:border-green-800 dark:text-green-400"
+          >
+            <Coins className="h-3.5 w-3.5" />
+            First training free
           </Badge>
         )}
       </div>

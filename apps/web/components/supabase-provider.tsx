@@ -83,7 +83,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
         const { data, error } = await supabase
           .from("profiles")
           .select(
-            "avatar_url, email, full_name, credits, ai_trained, youtube_connected, language, referral_code, role"
+            "avatar_url, email, full_name, credits, ai_trained, free_training_used, youtube_connected, language, referral_code, role"
           )
           .eq("user_id", userId)
           .single()
@@ -101,7 +101,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
             .update({ referral_code: referral })
             .eq("user_id", userId)
             .select(
-              "avatar_url, email, full_name, credits, ai_trained, youtube_connected, language, referral_code, role"
+              "avatar_url, email, full_name, credits, ai_trained, free_training_used, youtube_connected, language, referral_code, role"
             )
             .single()
 

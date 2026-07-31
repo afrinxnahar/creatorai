@@ -6,6 +6,8 @@ export interface UserProfile {
   full_name: string
   credits: number
   ai_trained: boolean
+  /** One-way: true once the free first training has landed. Survives disconnect. */
+  free_training_used?: boolean
   youtube_connected: boolean
   language: string
   referral_code: string | null
