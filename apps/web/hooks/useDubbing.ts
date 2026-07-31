@@ -46,6 +46,8 @@ export function useDubbing() {
 
   const [allowed, setAllowed] = useState(false);
   const [accessLoading, setAccessLoading] = useState(true);
+  // null = no limit (paid plans). Starter is capped rather than locked out.
+  const [maxDurationSeconds, setMaxDurationSeconds] = useState<number | null>(null);
 
   // Mid-run cancellation: the BullMQ job id of the in-flight dub, and whether the
   // user asked to cancel (suppresses the generic failure toast).
@@ -58,11 +60,16 @@ export function useDubbing() {
     message: "",
   });
 
-  // Plan gate: Pro/Business/Scale only.
+  // Every plan can dub; Starter is limited on clip length instead.
   useEffect(() => {
     api
-      .get<{ allowed: boolean }>("/api/v1/dubbing/access", { requireAuth: true })
-      .then((res) => setAllowed(!!res.allowed))
+      .get<{ allowed: boolean; maxDurationSeconds: number | null }>("/api/v1/dubbing/access", {
+        requireAuth: true,
+      })
+      .then((res) => {
+        setAllowed(!!res.allowed);
+        setMaxDurationSeconds(res.maxDurationSeconds ?? null);
+      })
       .catch(() => setAllowed(false))
       .finally(() => setAccessLoading(false));
   }, []);
@@ -120,6 +127,14 @@ export function useDubbing() {
     try {
       const durationSeconds = await getMediaDuration(mediaFile);
       if (!durationSeconds) throw new Error("Could not determine media duration.");
+
+      // Fail before the upload rather than after it — the server enforces this too,
+      // this just saves the user pushing a file to GCS that will be rejected.
+      if (maxDurationSeconds !== null && durationSeconds > maxDurationSeconds) {
+        throw new Error(
+          `Your plan can dub clips up to ${maxDurationSeconds} seconds. This one is ${Math.round(durationSeconds)}s — trim it, or upgrade for unlimited length.`,
+        );
+      }
 
       // 1. Signed URL — plan-gated + size-checked server-side before it's issued.
       updateProgress("uploading", 5, "Preparing upload...");
@@ -205,7 +220,7 @@ export function useDubbing() {
       updateProgress("failed", 0, message);
       toast.error("Error dubbing media", { description: message });
     }
-  }, [mediaFile, targetLanguage, isVideo, mediaName, session, updateProgress]);
+  }, [mediaFile, targetLanguage, isVideo, mediaName, session, updateProgress, maxDurationSeconds]);
 
   /** Cancel the in-flight dub: queued jobs stop instantly, active ones abort between stages. */
   const cancelDub = useCallback(async () => {
@@ -239,6 +254,7 @@ export function useDubbing() {
     isLoading,
     allowed,
     accessLoading,
+    maxDurationSeconds,
     canCancel: !!activeJobId,
     cancelDub,
     handleFileChange,

@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException, PayloadTooLargeException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  PayloadTooLargeException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bullmq';
 import { DubbingService } from './dubbing.service';
@@ -68,10 +73,23 @@ describe('DubbingService', () => {
       await expect(service.getAccess(USER)).resolves.toMatchObject({ allowed: true, plan });
     });
 
-    it('denies Starter (free) and users with no subscription', async () => {
+    it('allows Starter, but reports the 60s length cap', async () => {
       await build({ subscriptions: chain(planResult('Starter')) });
-      await expect(service.getAccess(USER)).resolves.toMatchObject({ allowed: false });
+      await expect(service.getAccess(USER)).resolves.toMatchObject({
+        allowed: true,
+        maxDurationSeconds: 60,
+      });
+    });
 
+    it('reports no length cap on paid plans', async () => {
+      await build({ subscriptions: chain(planResult('Pro')) });
+      await expect(service.getAccess(USER)).resolves.toMatchObject({
+        allowed: true,
+        maxDurationSeconds: null,
+      });
+    });
+
+    it('still denies users with no subscription at all', async () => {
       await build({ subscriptions: chain(planResult(null)) });
       await expect(service.getAccess(USER)).resolves.toMatchObject({ allowed: false });
     });
@@ -80,9 +98,25 @@ describe('DubbingService', () => {
   describe('signUpload', () => {
     const input = { filename: 'a.mp3', contentType: 'audio/mpeg', fileSize: 1000, isVideo: false, durationSeconds: 30 };
 
-    it('rejects Starter with ForbiddenException', async () => {
+    it('accepts a Starter clip within the 60s cap', async () => {
       await build({ subscriptions: chain(planResult('Starter')) });
-      await expect(service.signUpload(input, USER)).rejects.toThrow(ForbiddenException);
+      await expect(service.signUpload({ ...input, durationSeconds: 45 }, USER)).resolves.toMatchObject({
+        success: true,
+      });
+    });
+
+    it('rejects a Starter clip over the 60s cap', async () => {
+      await build({ subscriptions: chain(planResult('Starter')) });
+      await expect(service.signUpload({ ...input, durationSeconds: 90 }, USER)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('lets a paid plan exceed the Starter cap', async () => {
+      await build({ subscriptions: chain(planResult('Pro')) });
+      await expect(service.signUpload({ ...input, durationSeconds: 900 }, USER)).resolves.toMatchObject({
+        success: true,
+      });
     });
 
     it('rejects files over 500MB', async () => {

@@ -46,11 +46,11 @@ function DubbingUpgradeCard() {
           <div className="inline-flex p-3 rounded-2xl bg-white/10 backdrop-blur-md mb-6">
             <Mic className="h-6 w-6 text-violet-300" />
           </div>
-          <h3 className="text-2xl font-bold mb-3">Audio dubbing is a paid feature</h3>
+          <h3 className="text-2xl font-bold mb-3">Dub longer clips on a paid plan</h3>
           <p className="text-slate-400 text-sm leading-relaxed mb-8">
             Clone a voice and dub audio or video into 21 languages while keeping the original
-            voice. It&apos;s included in Creator, Pro, Business and Scale — upgrade from Starter
-            to start dubbing your media.
+            voice. Dubbing is available on every plan — Starter covers clips up to 60 seconds,
+            and any paid plan removes the length limit entirely.
           </p>
           <button
             onClick={() => router.push("/pricing")}
