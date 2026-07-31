@@ -1,5 +1,14 @@
 # Creator AI — dubbing clone service (Modal, serverless GPU).
 #
+# ⚠️ DORMANT — NOT CURRENTLY CALLED. Dubbing runs on the ElevenLabs Dubbing API
+# (see packages/workers/src/processor/dubbing.processor.ts), which does transcribe +
+# translate + voice-clone + timing + mux in one request and fixes the audio drift the
+# `-shortest` mux below has.
+#
+# This file is kept deployable on purpose: if ElevenLabs disappoints on quality or the
+# startup grant runs out and the per-minute rate stops making sense, the worker's
+# commented Modal branch plus this app is the way back. Nothing here has changed.
+#
 # Implements the contract the worker calls (packages/workers/.../dubbing.processor.ts):
 #   POST <MODAL_API_URL>
 #     { text, reference_url, is_video, language, output_put_url, output_content_type }
