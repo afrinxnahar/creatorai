@@ -9,7 +9,7 @@ export function subtitleUploadLimitBytes(isPaidPlan: boolean): number {
 
 // Duration caps. Starter (free) is throttled to 10 min. Paid plans are bounded by
 // Gemini's safe single-request video length, not "unlimited": 1M-context models
-// (e.g. gemini-3.5-flash) handle ~1 hour at default media resolution, so 45 min
+// (e.g. gemini-3.6-flash) handle ~1 hour at default media resolution, so 45 min
 // leaves headroom for the prompt + subtitle output tokens.
 export const SUBTITLE_FREE_MAX_DURATION_SECONDS = 10 * 60; // 10 minutes — Starter
 export const SUBTITLE_PAID_MAX_DURATION_SECONDS = 45 * 60; // 45 minutes — Gemini ceiling
