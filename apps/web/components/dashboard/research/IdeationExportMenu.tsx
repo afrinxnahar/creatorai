@@ -52,7 +52,12 @@ export default function IdeationExportMenu({ ideationId }: IdeationExportMenuPro
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={!!exporting}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!!exporting}
+          className="h-9 flex-1 sm:flex-none text-xs sm:text-sm border-slate-200 dark:border-slate-700 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-500/10 dark:hover:text-purple-300"
+        >
           {exporting ? (
             <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
           ) : (

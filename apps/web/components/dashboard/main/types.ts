@@ -5,6 +5,7 @@ export interface DashboardHomeProps {
   profile: {
     youtube_connected: boolean;
     ai_trained: boolean;
+    free_training_used?: boolean;
     credits: number;
     full_name?: string;
     youtube_channel_name?: string;

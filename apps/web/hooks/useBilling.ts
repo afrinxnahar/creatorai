@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { useSupabase } from "@/components/supabase-provider";
+import { trackFunnel } from "@/lib/funnel";
 
 interface Plan {
   id: string;
@@ -72,6 +73,16 @@ export function useBilling() {
 
   const subscribe = useCallback(async (planId: string, interval: "monthly" | "annual" = "monthly") => {
     setCheckoutLoading(planId);
+
+    // Purchase intent is recorded HERE rather than at each button, so every route
+    // into checkout is counted: billing settings, the subtitles upgrade card, the
+    // video-generation upgrade card, and anything added later. Previously only the
+    // marketing pricing cards fired it, which is why the admin funnel showed tiers
+    // with more checkouts than clicks. `checkout_started` is recorded server-side
+    // and already counted every route, so the two steps now agree.
+    const planName = plans.find((p) => p.id === planId)?.name;
+    if (planName) trackFunnel("plan_clicked", planName);
+
     try {
       let affiliateCode: string | undefined;
       if (typeof window !== "undefined") {
@@ -103,7 +114,7 @@ export function useBilling() {
     } finally {
       setCheckoutLoading(null);
     }
-  }, []);
+  }, [plans]);
 
   const cancelSubscription = useCallback(async () => {
     setCancelLoading(true);

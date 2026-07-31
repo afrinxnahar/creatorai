@@ -26,7 +26,7 @@ export class DubbingController {
   @Get('access')
   @UseGuards(SupabaseAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Whether the user may dub (Pro/Business/Scale)' })
+  @ApiOperation({ summary: 'Whether the user may dub, and the max clip length their plan allows' })
   async access(@Req() req: AuthRequest) {
     return this.service.getAccess(req.user!.id);
   }
@@ -36,7 +36,7 @@ export class DubbingController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get a signed URL to upload source media to GCS',
-    description: 'Plan-gated (paid plans only). The browser PUTs the file to the returned uploadUrl, then calls POST /dubbing with the objectName.',
+    description: 'Available on every plan; Starter is capped at 60s per clip. The browser PUTs the file to the returned uploadUrl, then calls POST /dubbing with the objectName.',
   })
   @ApiBody({
     schema: {

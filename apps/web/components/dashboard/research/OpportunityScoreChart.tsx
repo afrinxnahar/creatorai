@@ -48,7 +48,11 @@ export default function OpportunityScoreChart({ ideas }: OpportunityScoreChartPr
                 fontSize: "12px",
               }}
             />
-            <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={20}>
+            {/* isAnimationActive={false}: recharts 2.15's bar entry animation never
+                settles under React 19, so <Rectangle> is never rendered and the bars
+                come out as empty <g> nodes — axes and tooltip look fine, no console
+                error, no data drawn. Verified in the browser. */}
+            <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={20} isAnimationActive={false}>
               {data.map((entry, i) => (
                 <Cell key={i} fill={getBarColor(entry.score)} />
               ))}

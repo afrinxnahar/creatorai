@@ -275,6 +275,11 @@ export function ConnectedDashboardView(props: SharedProps) {
               <div className="h-44 w-full relative mb-5">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
+                    {/* isAnimationActive={false}: same recharts 2.15 / React 19 failure as
+                        the Bar marks — the sector entry animation never settles, so the
+                        donut renders as empty <g> nodes with no visible slices. The
+                        centre label still draws, which makes it look merely empty rather
+                        than broken. Area charts are unaffected. */}
                     <Pie
                       data={pieData}
                       cx="50%" cy="50%"
@@ -282,6 +287,7 @@ export function ConnectedDashboardView(props: SharedProps) {
                       paddingAngle={3}
                       dataKey="value"
                       strokeWidth={0}
+                      isAnimationActive={false}
                       onMouseEnter={(_, index) => setActivePieIndex(index)}
                       onMouseLeave={() => setActivePieIndex(null)}
                     >

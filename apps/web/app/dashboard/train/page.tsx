@@ -46,6 +46,7 @@ export default function TrainAIPage() {
       <TrainAIHeader
         isYtConnected={profile.youtube_connected}
         isAiTrained={profile.ai_trained}
+        freeTrainingUsed={profile.free_training_used}
         lastCreditsConsumed={lastCreditsConsumed}
       />
 

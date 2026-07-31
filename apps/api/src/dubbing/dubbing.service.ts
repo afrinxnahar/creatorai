@@ -17,6 +17,8 @@ import {
   canDub,
   hasEnoughCredits,
   getMinimumCreditsForDubbing,
+  isDubDurationAllowed,
+  maxDubSecondsForPlan,
   DUBBING_CREDIT_MULTIPLIER,
   DUBBING_CANCEL_PREFIX,
 } from '@repo/validation';
@@ -39,11 +41,18 @@ const MAX_DUB_UPLOAD_BYTES = 500 * 1024 * 1024; // 500MB
 // in the worker right before the Modal call instead (needs GCS signing in the worker).
 const OUTPUT_URL_TTL_MS = 2 * 60 * 60 * 1000; // 2h
 
-/** Deterministic output object + content type, derivable from projectId alone (for cleanup). */
+/**
+ * Deterministic output object + content type, derivable from projectId alone (for cleanup).
+ *
+ * Audio output is MP3, not WAV: the ElevenLabs dubbing endpoint streams back MP3 for an
+ * audio source and MP4 for a video source. GCS binds Content-Type to the signed PUT URL,
+ * so a mismatch here is rejected at upload time rather than failing loudly earlier.
+ * Dubs completed under the previous Modal pipeline keep their .wav URLs and still play.
+ */
 function dubOutput(projectId: string, isVideo: boolean): { objectName: string; contentType: string } {
   return isVideo
     ? { objectName: `dubbed/${projectId}.mp4`, contentType: 'video/mp4' }
-    : { objectName: `dubbed/${projectId}.wav`, contentType: 'audio/wav' };
+    : { objectName: `dubbed/${projectId}.mp3`, contentType: 'audio/mpeg' };
 }
 
 @Injectable()
@@ -79,10 +88,30 @@ export class DubbingService {
     return (subscription?.plans as { name?: string } | null)?.name ?? null;
   }
 
-  /** Lightweight gate check for the UI — form vs. upgrade card. */
+  /** Lightweight gate check for the UI — form vs. upgrade card, plus the length limit. */
   async getAccess(userId: string) {
     const planName = await this.getActivePlanName(userId);
-    return { success: true, allowed: canDub(planName), plan: planName };
+    return {
+      success: true,
+      allowed: canDub(planName),
+      plan: planName,
+      maxDurationSeconds: maxDubSecondsForPlan(planName),
+    };
+  }
+
+  /**
+   * Every plan can dub; Starter is capped on clip LENGTH instead of being locked out.
+   * `durationSeconds` is measured in the browser and therefore untrusted — this is the
+   * cheap first gate, and the worker re-checks against the duration the dubbing vendor
+   * reports before it spends anything.
+   */
+  private assertDurationAllowed(planName: string | null, durationSeconds: number): void {
+    if (isDubDurationAllowed(planName, durationSeconds)) return;
+    const cap = maxDubSecondsForPlan(planName);
+    throw new BadRequestException(
+      `On the ${planName ?? 'Starter'} plan you can dub clips up to ${cap} seconds. ` +
+        `This one is ${Math.round(durationSeconds)}s — trim it, or upgrade for unlimited length.`,
+    );
   }
 
   private sanitizeFileName(value: string): string {
@@ -102,8 +131,9 @@ export class DubbingService {
   async signUpload(input: SignDubUploadInput, userId: string) {
     const planName = await this.getActivePlanName(userId);
     if (!canDub(planName)) {
-      throw new ForbiddenException('Dubbing is available on all paid plans. Please upgrade from Starter to dub your media.');
+      throw new ForbiddenException('We could not find an active plan on your account. Please refresh and try again.');
     }
+    this.assertDurationAllowed(planName, input.durationSeconds);
 
     if (input.fileSize > MAX_DUB_UPLOAD_BYTES) {
       throw new PayloadTooLargeException(
@@ -126,8 +156,9 @@ export class DubbingService {
 
     const planName = await this.getActivePlanName(userId);
     if (!canDub(planName)) {
-      throw new ForbiddenException('Dubbing is available on all paid plans. Please upgrade from Starter to dub your media.');
+      throw new ForbiddenException('We could not find an active plan on your account. Please refresh and try again.');
     }
+    this.assertDurationAllowed(planName, durationSeconds);
 
     // The signed URL was scoped to this user's prefix — refuse someone else's object.
     if (!objectName.startsWith(`${userId}/`)) {
@@ -196,6 +227,7 @@ export class DubbingService {
         isVideo,
         targetLanguage,
         durationSeconds,
+        planName,
         ...output,
       },
       { jobId: bullJobId },
@@ -233,7 +265,7 @@ export class DubbingService {
   async regenerateDub(userId: string, projectId: string): Promise<{ projectId: string; jobId: string }> {
     const planName = await this.getActivePlanName(userId);
     if (!canDub(planName)) {
-      throw new ForbiddenException('Dubbing is available on all paid plans. Please upgrade from Starter to dub your media.');
+      throw new ForbiddenException('We could not find an active plan on your account. Please refresh and try again.');
     }
 
     const { data: row, error } = await this.supabase
@@ -246,6 +278,10 @@ export class DubbingService {
     if (!row.input_gs_uri || !row.input_url || !row.duration_seconds) {
       throw new BadRequestException('This dub is missing its source media and cannot be regenerated.');
     }
+
+    // Re-check the cap: a downgrade since the original dub must not let a long clip
+    // through the back door.
+    this.assertDurationAllowed(planName, Number(row.duration_seconds));
 
     // The stored source must still exist in GCS — and gives us its content type.
     const objectName = String(row.input_gs_uri).split('/').slice(3).join('/');
@@ -289,6 +325,7 @@ export class DubbingService {
         isVideo: row.is_video,
         targetLanguage: row.target_language,
         durationSeconds: Number(row.duration_seconds),
+        planName,
         ...output,
       },
       { jobId: bullJobId },

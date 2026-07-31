@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: "How do credits work?",
-    a: "Credits are what power the AI. Each action (like generating a script or creating a thumbnail) uses a certain number of credits. The free Starter plan gives you 500 credits per month. Paid plans, Creator (3,000), Pro (8,000), Business (50,000) and Scale (150,000), give you more.",
+    a: "Credits are what power the AI. Each action (like generating a script or creating a thumbnail) uses a certain number of credits. The free Starter plan gives you 500 credits per month. Paid plans, Creator (3,000), Pro (8,000), Business (50,000) and Scale (100,000), give you more.",
   },
   {
     q: "Do I need a YouTube channel to use it?",
