@@ -316,13 +316,18 @@ export function UsageInfo() {
                         cursor={{ fill: "rgba(168, 85, 247, 0.08)" }}
                         formatter={(value: number) => [`${value} credits`, "Used"]}
                       />
+                      {/* isAnimationActive={false}: recharts 2.15's bar entry animation
+                          never settles under React 19, so <Rectangle> is never rendered
+                          and the bars come out as empty <g> nodes — axes and tooltip look
+                          fine, no console error, no data drawn. The animationDuration /
+                          animationEasing that used to sit here were tuning a transition
+                          that never completed. Area charts are unaffected. */}
                       <Bar
                         dataKey="credits"
                         fill="url(#barGradient)"
                         radius={[6, 6, 0, 0]}
                         maxBarSize={48}
-                        animationDuration={800}
-                        animationEasing="ease-out"
+                        isAnimationActive={false}
                       />
                     </BarChart>
                   </ResponsiveContainer>
