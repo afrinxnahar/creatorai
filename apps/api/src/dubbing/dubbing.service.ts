@@ -152,7 +152,7 @@ export class DubbingService {
    * and enqueue the dubbing worker. The worker deducts the real (duration-based) cost.
    */
   async createDub(input: CreateDubInput, userId: string): Promise<{ projectId: string; jobId: string }> {
-    const { objectName, targetLanguage, isVideo, mediaName, durationSeconds } = input;
+    const { objectName, targetLanguage, targetAccent, isVideo, mediaName, durationSeconds } = input;
 
     const planName = await this.getActivePlanName(userId);
     if (!canDub(planName)) {
@@ -200,6 +200,7 @@ export class DubbingService {
       input_url: publicUrl,
       input_gs_uri: inputGsUri,
       target_language: targetLanguage,
+      target_accent: targetAccent ?? null,
       is_video: isVideo,
       media_name: mediaName,
       duration_seconds: durationSeconds,
@@ -226,6 +227,7 @@ export class DubbingService {
         mimeType: contentType,
         isVideo,
         targetLanguage,
+        targetAccent,
         durationSeconds,
         planName,
         ...output,
@@ -270,7 +272,7 @@ export class DubbingService {
 
     const { data: row, error } = await this.supabase
       .from('dubbing_projects')
-      .select('input_gs_uri, input_url, target_language, is_video, duration_seconds')
+      .select('input_gs_uri, input_url, target_language, target_accent, is_video, duration_seconds')
       .eq('user_id', userId)
       .eq('project_id', projectId)
       .single();
@@ -324,6 +326,7 @@ export class DubbingService {
         mimeType: contentType,
         isVideo: row.is_video,
         targetLanguage: row.target_language,
+        targetAccent: row.target_accent,
         durationSeconds: Number(row.duration_seconds),
         planName,
         ...output,

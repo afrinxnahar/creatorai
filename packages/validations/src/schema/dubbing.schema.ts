@@ -18,6 +18,7 @@ export const SignDubUploadSchema = z.object({
 export const CreateDubSchema = z.object({
   objectName: z.string().min(1, { message: 'objectName is required' }),
   targetLanguage: z.string().min(1, { message: 'Target language is required' }),
+  targetAccent: z.string().max(40).optional(),
   isVideo: z.boolean(),
   mediaName: z.string().min(1, { message: 'Media name is required' }).max(100),
   durationSeconds: z.coerce.number().positive({ message: 'Duration is required' }),

@@ -41,6 +41,7 @@ export function useDubbing() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [isVideo, setIsVideo] = useState(false);
   const [targetLanguage, setTargetLanguage] = useState("");
+  const [targetAccent, setTargetAccent] = useState("");
   const [mediaName, setMediaName] = useState("");
   const [dubbedResult, setDubbedResult] = useState<DubbedResult | null>(null);
 
@@ -108,6 +109,7 @@ export function useDubbing() {
   const resetForm = useCallback(() => {
     setMediaFile(null);
     setTargetLanguage("");
+    setTargetAccent("");
     setMediaName("");
     setDubbedResult(null);
     setProgress({ state: "idle", progress: 0, message: "" });
@@ -167,7 +169,7 @@ export function useDubbing() {
       updateProgress("processing", 15, "Upload complete. Starting dubbing...");
       const { jobId } = await api.post<{ projectId: string; jobId: string }>(
         "/api/v1/dubbing",
-        { objectName, targetLanguage, isVideo, mediaName: mediaName.trim(), durationSeconds },
+        { objectName, targetLanguage, targetAccent: targetAccent || undefined, isVideo, mediaName: mediaName.trim(), durationSeconds },
         { requireAuth: true, accessToken: session?.access_token },
       );
 
@@ -220,7 +222,7 @@ export function useDubbing() {
       updateProgress("failed", 0, message);
       toast.error("Error dubbing media", { description: message });
     }
-  }, [mediaFile, targetLanguage, isVideo, mediaName, session, updateProgress, maxDurationSeconds]);
+  }, [mediaFile, targetLanguage, targetAccent, isVideo, mediaName, session, updateProgress, maxDurationSeconds]);
 
   /** Cancel the in-flight dub: queued jobs stop instantly, active ones abort between stages. */
   const cancelDub = useCallback(async () => {
@@ -247,6 +249,8 @@ export function useDubbing() {
     isVideo,
     targetLanguage,
     setTargetLanguage,
+    targetAccent,
+    setTargetAccent,
     mediaName,
     setMediaName,
     dubbedResult,
