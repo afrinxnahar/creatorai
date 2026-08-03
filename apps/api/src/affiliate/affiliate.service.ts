@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ConflictException,
   NotFoundException,
   Logger,
   InternalServerErrorException,
@@ -10,6 +11,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import {
   lemonSqueezySetup,
   createDiscount,
+  deleteDiscount,
   listDiscounts,
 } from '@lemonsqueezy/lemonsqueezy.js';
 import { Resend } from 'resend';
@@ -37,6 +39,12 @@ interface LsAffiliateAttributes {
   unpaid_earnings: number;
   created_at: string;
   updated_at: string;
+}
+
+interface PromoCodeStats {
+  conversions: number;
+  revenue: number;
+  commission: number;
 }
 
 interface LsAffiliateData {
@@ -587,15 +595,74 @@ export class AffiliateService {
       : { data: [] };
     const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
 
-    const enriched = (data ?? []).map((p) => ({ ...p, profiles: profileMap.get(p.owner_id) ?? null }));
+    // One query for the whole page's usage rather than one per code.
+    const codeIds = (data ?? []).map((p) => p.id);
+    const { data: sales } = codeIds.length
+      ? await this.db
+          .from('affiliate_sales')
+          .select('promo_code_id, amount, commission, status')
+          .in('promo_code_id', codeIds)
+      : { data: [] };
+
+    const statsMap = new Map<string, PromoCodeStats>();
+    for (const sale of sales ?? []) {
+      const s = statsMap.get(sale.promo_code_id) ?? { conversions: 0, revenue: 0, commission: 0 };
+      s.conversions += 1;
+      if (sale.status !== 'refunded') {
+        s.revenue += Number(sale.amount ?? 0);
+        s.commission += Number(sale.commission ?? 0);
+      }
+      statsMap.set(sale.promo_code_id, s);
+    }
+
+    const enriched = (data ?? []).map((p) => ({
+      ...p,
+      profiles: profileMap.get(p.owner_id) ?? null,
+      stats: statsMap.get(p.id) ?? { conversions: 0, revenue: 0, commission: 0 },
+    }));
     return { data: enriched, total: count ?? 0, page, limit };
   }
 
-  async createPromoCode(input: CreatePromoCodeInput) {
+  /**
+   * Lemon Squeezy has no update endpoint for discounts (create / retrieve /
+   * list / delete only), so any change to the code or its amount is a
+   * delete-then-recreate, and deactivating means removing it from LS entirely
+   * — otherwise a "disabled" code keeps discounting with nobody credited.
+   */
+  private async createLsDiscount(input: {
+    code: string;
+    amount: number;
+    amount_type: 'percent' | 'fixed';
+    label?: string | null;
+  }) {
     this.initLemonSqueezy();
     const storeId = this.configService.get<string>('LEMONSQUEEZY_STORE_ID');
     if (!storeId) throw new BadRequestException('Store not configured');
 
+    const { data: discount, error } = await createDiscount({
+      storeId,
+      name: input.label || input.code,
+      code: input.code,
+      amount: input.amount_type === 'fixed' ? Math.round(input.amount * 100) : input.amount,
+      amountType: input.amount_type,
+    });
+
+    if (error || !discount) {
+      this.logger.error(`LS createDiscount failed: ${JSON.stringify(error)}`);
+      throw new BadRequestException('Failed to create discount in Lemon Squeezy');
+    }
+    return String(discount.data.id);
+  }
+
+  private async removeLsDiscount(lsDiscountId?: string | null) {
+    if (!lsDiscountId) return;
+    this.initLemonSqueezy();
+    const { error } = await deleteDiscount(lsDiscountId);
+    // Already gone in LS (deleted by hand there) is the desired end state anyway.
+    if (error) this.logger.warn(`LS deleteDiscount ${lsDiscountId} failed: ${JSON.stringify(error)}`);
+  }
+
+  async createPromoCode(input: CreatePromoCodeInput) {
     const { data: owner } = await this.db
       .from('profiles')
       .select('user_id')
@@ -603,27 +670,15 @@ export class AffiliateService {
       .single();
     if (!owner) throw new NotFoundException('User not found');
 
-    const lsAmount = input.amount_type === 'fixed' ? Math.round(input.amount * 100) : input.amount;
-
-    const { data: discount, error: lsError } = await createDiscount({
-      storeId,
-      name: input.label || input.code,
-      code: input.code,
-      amount: lsAmount,
-      amountType: input.amount_type,
-    });
-
-    if (lsError || !discount) {
-      this.logger.error(`LS createDiscount failed: ${JSON.stringify(lsError)}`);
-      throw new BadRequestException('Failed to create discount in Lemon Squeezy');
-    }
+    const code = input.code.toUpperCase();
+    const lsDiscountId = await this.createLsDiscount({ ...input, code });
 
     const { data, error } = await this.db
       .from('affiliate_promo_codes')
       .insert({
         owner_id: input.owner_id,
-        code: input.code,
-        ls_discount_id: String(discount.data.id),
+        code,
+        ls_discount_id: lsDiscountId,
         amount: input.amount,
         amount_type: input.amount_type,
         commission_rate: input.commission_rate,
@@ -631,20 +686,88 @@ export class AffiliateService {
       })
       .select()
       .single();
-    if (error) throw new BadRequestException(error.message);
+
+    if (error) {
+      // Don't leave an orphan discount live in LS when the row didn't land.
+      await this.removeLsDiscount(lsDiscountId);
+      throw new BadRequestException(error.message);
+    }
     return data;
   }
 
   async updatePromoCode(id: string, updates: UpdatePromoCodeInput) {
+    const { data: existing } = await this.db
+      .from('affiliate_promo_codes')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (!existing) throw new NotFoundException('Promo code not found');
+
+    const next = {
+      code: (updates.code ?? existing.code).toUpperCase(),
+      amount: updates.amount ?? Number(existing.amount),
+      amount_type: (updates.amount_type ?? existing.amount_type) as 'percent' | 'fixed',
+      label: updates.label ?? existing.label,
+    };
+    const isActive = updates.is_active ?? existing.is_active;
+    const discountChanged =
+      next.code !== existing.code ||
+      next.amount !== Number(existing.amount) ||
+      next.amount_type !== existing.amount_type;
+
+    let lsDiscountId: string | null = existing.ls_discount_id;
+    if (!isActive) {
+      await this.removeLsDiscount(existing.ls_discount_id);
+      lsDiscountId = null;
+    } else if (discountChanged || !existing.ls_discount_id) {
+      // Codes are unique per store, so free the old one before claiming it again.
+      await this.removeLsDiscount(existing.ls_discount_id);
+      lsDiscountId = await this.createLsDiscount(next);
+    }
+
     const { data, error } = await this.db
       .from('affiliate_promo_codes')
-      .update(updates)
+      .update({
+        code: next.code,
+        amount: next.amount,
+        amount_type: next.amount_type,
+        label: next.label,
+        commission_rate: updates.commission_rate ?? existing.commission_rate,
+        is_active: isActive,
+        ls_discount_id: lsDiscountId,
+      })
       .eq('id', id)
       .select()
       .single();
     if (error) throw new BadRequestException(error.message);
-    if (!data) throw new NotFoundException('Promo code not found');
     return data;
+  }
+
+  async deletePromoCode(id: string) {
+    const { data: existing } = await this.db
+      .from('affiliate_promo_codes')
+      .select('id, ls_discount_id')
+      .eq('id', id)
+      .maybeSingle();
+    if (!existing) throw new NotFoundException('Promo code not found');
+
+    // Sales point at the code to price renewal commissions; deleting the row
+    // would silently cut those off. Deactivating kills the discount instead.
+    const { count } = await this.db
+      .from('affiliate_sales')
+      .select('id', { count: 'exact', head: true })
+      .eq('promo_code_id', id);
+    if (count) {
+      throw new ConflictException(
+        `This code has ${count} attributed sale(s). Deactivate it instead so commission history stays intact.`,
+      );
+    }
+
+    await this.removeLsDiscount(existing.ls_discount_id);
+
+    const { error } = await this.db.from('affiliate_promo_codes').delete().eq('id', id);
+    if (error) throw new BadRequestException(error.message);
+    return { success: true };
   }
 
   async getLsDiscounts() {

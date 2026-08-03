@@ -22,7 +22,8 @@ const sections = [
   { id: "indemnification", title: "10. Indemnification" },
   { id: "governing-law", title: "11. Governing Law" },
   { id: "policy-changes", title: "12. Changes to Terms" },
-  { id: "contact", title: "13. Contact" },
+  { id: "affiliate-program", title: "13. Affiliate Program" },
+  { id: "contact", title: "14. Contact" },
 ]
 
 const TermsPage = () => {
@@ -212,7 +213,25 @@ const TermsPage = () => {
               </p>
             </PolicySection>
 
-            <PolicySection id="contact" title="13. Contact">
+            <PolicySection id="affiliate-program" title="13. Affiliate Program">
+              <p>
+                If you promote Creator AI through a tracking link or an issued promo code,
+                additional terms apply covering attribution, commission rates, the 30-day
+                holding period, payouts, and how promo code discounts work.
+              </p>
+              <p>
+                Read the full{" "}
+                <Link
+                  href="/affiliate-terms"
+                  className="font-medium text-purple-600 hover:text-purple-800 underline underline-offset-4 transition-colors"
+                >
+                  Affiliate Program Terms
+                </Link>
+                . Taking part in the program means accepting them in addition to these Terms.
+              </p>
+            </PolicySection>
+
+            <PolicySection id="contact" title="14. Contact">
               <p>
                 Have questions about these Terms? Visit our{" "}
                 <Link

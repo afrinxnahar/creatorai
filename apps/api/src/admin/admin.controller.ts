@@ -220,6 +220,46 @@ export class AdminController {
     );
   }
 
+  // ==================== ERROR LOGS ====================
+
+  @Get('errors')
+  @ApiOperation({ summary: 'Captured API and worker errors, newest first' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'source', required: false, description: 'api | worker' })
+  @ApiQuery({ name: 'feature', required: false, description: 'ideation | dubbing | thumbnail | …' })
+  @ApiQuery({ name: 'userId', required: false })
+  @ApiQuery({ name: 'hours', required: false, description: 'Only errors from the last N hours' })
+  getErrors(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('source') source?: string,
+    @Query('feature') feature?: string,
+    @Query('userId') userId?: string,
+    @Query('hours') hours?: string,
+  ) {
+    const window = Number(hours);
+    return this.adminService.getErrorLogs(Number(page) || 1, Number(limit) || 30, {
+      source,
+      feature,
+      userId,
+      since: window > 0 ? new Date(Date.now() - window * 3600000).toISOString() : undefined,
+    });
+  }
+
+  @Get('errors/summary')
+  @ApiOperation({ summary: 'Errors grouped by fingerprint, most frequent first' })
+  @ApiQuery({ name: 'hours', required: false })
+  getErrorSummary(@Query('hours') hours?: string) {
+    return this.adminService.getErrorSummary(Number(hours) || 24);
+  }
+
+  @Get('errors/:id')
+  @ApiOperation({ summary: 'One error with full stack, context and occurrence counts' })
+  getError(@Param('id') id: string) {
+    return this.adminService.getErrorLog(id);
+  }
+
   // ==================== MAILS ====================
 
   @Get('mails')

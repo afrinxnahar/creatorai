@@ -6,6 +6,9 @@ import type {
   BlogPost,
   MailMessage,
   ActivityFeedItem,
+  ErrorLog,
+  ErrorLogDetail,
+  ErrorGroup,
   JobPost,
   JobApplication,
   AffiliateRequest,
@@ -122,6 +125,75 @@ export function useAdminActivities(page = 1, category?: string) {
 
   useEffect(() => { fetch(); }, [fetch]);
   return { ...data, loading, refresh: fetch };
+}
+
+export function useAdminErrors(
+  page = 1,
+  filters: { source?: string; feature?: string; hours?: string } = {},
+) {
+  const [data, setData] = useState<PaginatedResponse<ErrorLog> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { source, feature, hours } = filters;
+
+  const fetch = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({ page: String(page), limit: '30' });
+      if (source) params.set('source', source);
+      if (feature) params.set('feature', feature);
+      if (hours) params.set('hours', hours);
+      const res = await api.get<PaginatedResponse<ErrorLog>>(`/api/v1/admin/errors?${params}`, AUTH);
+      setData(res);
+    } catch (err) {
+      console.error('Failed to fetch error logs:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, source, feature, hours]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+  return { ...data, loading, refresh: fetch };
+}
+
+export function useAdminErrorSummary(hours = 24) {
+  const [groups, setGroups] = useState<ErrorGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetch = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get<{ hours: number; data: ErrorGroup[] }>(
+        `/api/v1/admin/errors/summary?hours=${hours}`,
+        AUTH,
+      );
+      setGroups(res.data ?? []);
+    } catch (err) {
+      console.error('Failed to fetch error summary:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [hours]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+  return { groups, loading, refresh: fetch };
+}
+
+export function useAdminErrorDetail(id: string | null) {
+  const [error, setError] = useState<ErrorLogDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!id) { setError(null); return; }
+    let cancelled = false;
+    setLoading(true);
+    api.get<ErrorLogDetail>(`/api/v1/admin/errors/${id}`, AUTH)
+      .then((res) => { if (!cancelled) setError(res); })
+      .catch((err) => console.error('Failed to fetch error detail:', err))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  return { error, loading };
 }
 
 export function useAdminMails(page = 1, status?: string) {
@@ -399,8 +471,19 @@ export const adminApi = {
     commission_rate?: number;
     label?: string;
   }) => api.post('/api/v1/affiliate/admin/promo-codes', data, AUTH),
-  updatePromoCode: (id: string, updates: { commission_rate?: number; label?: string; is_active?: boolean }) =>
-    api.put(`/api/v1/affiliate/admin/promo-codes/${id}`, updates, AUTH),
+  updatePromoCode: (
+    id: string,
+    updates: {
+      code?: string;
+      amount?: number;
+      amount_type?: 'percent' | 'fixed';
+      commission_rate?: number;
+      label?: string;
+      is_active?: boolean;
+    },
+  ) => api.put(`/api/v1/affiliate/admin/promo-codes/${id}`, updates, AUTH),
+  deletePromoCode: (id: string) =>
+    api.delete(`/api/v1/affiliate/admin/promo-codes/${id}`, AUTH),
   updateWithdrawal: (id: string, status: 'approved' | 'paid' | 'rejected', admin_notes?: string) =>
     api.put(`/api/v1/affiliate/admin/withdrawals/${id}`, { status, admin_notes }, AUTH),
   // ---- Bulk email ----

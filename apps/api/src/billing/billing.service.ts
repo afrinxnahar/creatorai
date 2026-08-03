@@ -191,6 +191,7 @@ export class BillingService {
     affiliateCode?: string,
     origin?: string,
     interval: 'monthly' | 'annual' = 'monthly',
+    promoCode?: string,
   ) {
     this.initLemonSqueezy();
     const supabase = this.supabaseService.getClient();
@@ -229,6 +230,21 @@ export class BillingService {
 
     const frontendUrl = this.resolveFrontendBase(origin);
 
+    // Pre-fill the discount so a visitor who arrived on ?promo=CODE never has to
+    // remember to type it — an unentered code costs the buyer their discount and
+    // the affiliate their commission. Unknown or deactivated codes are dropped
+    // rather than rejected, so a stale link still completes checkout.
+    const appliedPromo = promoCode
+      ? (
+          await supabase
+            .from('affiliate_promo_codes')
+            .select('code')
+            .eq('code', promoCode.toUpperCase())
+            .eq('is_active', true)
+            .maybeSingle()
+        ).data?.code
+      : undefined;
+
     const checkoutData: NewCheckout = {
       productOptions: {
         redirectUrl: `${frontendUrl}/dashboard/settings?tab=billing&status=success`,
@@ -236,6 +252,7 @@ export class BillingService {
       checkoutData: {
         email: profile.email,
         name: profile.full_name ?? undefined,
+        ...(appliedPromo ? { discountCode: appliedPromo } : {}),
         custom: {
           user_id: userId,
           plan_id: planId,
@@ -570,8 +587,23 @@ export class BillingService {
       await this.applyAllowance(userId, plan.credits_monthly, supabase, referralBonus);
     }
 
+    // A redeemed promo code is checked first and wins: it's the code that
+    // actually discounted this order, whereas a stored referral link may just
+    // be a month-old localStorage entry. Only ever one of the two is paid.
+    const promoTracked =
+      attrs.order_id != null &&
+      (await this.trackPromoConversion(
+        String(attrs.order_id),
+        userId,
+        planId,
+        supabase,
+        customerEmail,
+        subscriptionId,
+        billingInterval,
+      ));
+
     const affiliateCode = event.meta.custom_data?.affiliate_code;
-    if (affiliateCode) {
+    if (!promoTracked && affiliateCode) {
       await this.trackAffiliateConversion(
         affiliateCode,
         userId,
@@ -579,15 +611,7 @@ export class BillingService {
         supabase,
         customerEmail,
         subscriptionId,
-      );
-    } else if (attrs.order_id != null) {
-      await this.trackPromoConversion(
-        String(attrs.order_id),
-        userId,
-        planId,
-        supabase,
-        customerEmail,
-        subscriptionId,
+        billingInterval,
       );
     }
 
@@ -651,7 +675,7 @@ export class BillingService {
 
     const { data: sub } = await supabase
       .from('subscriptions')
-      .select('id, user_id, plan_id')
+      .select('id, user_id, plan_id, billing_interval')
       .eq('ls_subscription_id', lsSubId)
       .single();
 
@@ -684,6 +708,7 @@ export class BillingService {
         supabase,
         customerEmail,
         sub.id,
+        sub.billing_interval === 'annual' ? 'annual' : 'monthly',
       );
     }
   }
@@ -945,6 +970,27 @@ export class BillingService {
     return REFERRAL_PURCHASE_BONUS;
   }
 
+  /**
+   * What the customer is actually billed for this cycle. Annual subscribers pay
+   * twelve months up front, so commissioning them at the monthly price paid the
+   * affiliate a twelfth of what it should.
+   */
+  private async billedAmount(
+    planId: string,
+    interval: 'monthly' | 'annual',
+    supabase: ReturnType<typeof this.supabaseService.getClient>,
+  ) {
+    const { data: plan } = await supabase
+      .from('plans')
+      .select('price_monthly, price_annual_monthly')
+      .eq('id', planId)
+      .single();
+    if (!plan) return 0;
+    return interval === 'annual'
+      ? Number(plan.price_annual_monthly ?? plan.price_monthly) * 12
+      : Number(plan.price_monthly);
+  }
+
   private async trackAffiliateConversion(
     code: string,
     customerId: string,
@@ -952,6 +998,7 @@ export class BillingService {
     supabase: ReturnType<typeof this.supabaseService.getClient>,
     customerEmail?: string | null,
     subscriptionId?: string | null,
+    interval: 'monthly' | 'annual' = 'monthly',
   ) {
     const { data: link } = await supabase
       .from('affiliate_links')
@@ -970,13 +1017,7 @@ export class BillingService {
       .maybeSingle();
     if (existing) return;
 
-    const { data: plan } = await supabase
-      .from('plans')
-      .select('price_monthly')
-      .eq('id', planId)
-      .single();
-
-    const amount = plan?.price_monthly ?? 0;
+    const amount = await this.billedAmount(planId, interval, supabase);
     const commission = Number(((amount * link.commission_rate) / 100).toFixed(2));
 
     await supabase.from('affiliate_sales').insert({
@@ -995,6 +1036,7 @@ export class BillingService {
     this.logger.log(`Affiliate conversion tracked for code ${code}`);
   }
 
+  /** Returns true when the order was attributed to a promo code. */
   private async trackPromoConversion(
     orderId: string,
     customerId: string,
@@ -1002,16 +1044,17 @@ export class BillingService {
     supabase: ReturnType<typeof this.supabaseService.getClient>,
     customerEmail?: string | null,
     subscriptionId?: string | null,
-  ) {
+    interval: 'monthly' | 'annual' = 'monthly',
+  ): Promise<boolean> {
     this.initLemonSqueezy();
 
     const { data: redemptions, error } = await listDiscountRedemptions({ filter: { orderId } });
-    if (error || !redemptions?.data?.length) return;
+    if (error || !redemptions?.data?.length) return false;
 
     const discountCode = (
       redemptions.data[0]?.attributes as { discount_code?: string } | undefined
     )?.discount_code;
-    if (!discountCode) return;
+    if (!discountCode) return false;
 
     const { data: promo } = await supabase
       .from('affiliate_promo_codes')
@@ -1019,7 +1062,7 @@ export class BillingService {
       .eq('code', discountCode)
       .eq('is_active', true)
       .maybeSingle();
-    if (!promo) return;
+    if (!promo) return false;
 
     const { data: existing } = await supabase
       .from('affiliate_sales')
@@ -1027,15 +1070,9 @@ export class BillingService {
       .eq('promo_code_id', promo.id)
       .eq('customer_id', customerId)
       .maybeSingle();
-    if (existing) return;
+    if (existing) return true;
 
-    const { data: plan } = await supabase
-      .from('plans')
-      .select('price_monthly')
-      .eq('id', planId)
-      .single();
-
-    const amount = plan?.price_monthly ?? 0;
+    const amount = await this.billedAmount(planId, interval, supabase);
     const commission = Number(((amount * promo.commission_rate) / 100).toFixed(2));
 
     await supabase.from('affiliate_sales').insert({
@@ -1053,6 +1090,7 @@ export class BillingService {
     });
 
     this.logger.log(`Promo conversion tracked for code ${discountCode}`);
+    return true;
   }
 
   private async trackRenewalCommission(
@@ -1061,6 +1099,7 @@ export class BillingService {
     supabase: ReturnType<typeof this.supabaseService.getClient>,
     customerEmail?: string | null,
     subscriptionId?: string | null,
+    interval: 'monthly' | 'annual' = 'monthly',
   ) {
     const { data: original } = await supabase
       .from('affiliate_sales')
@@ -1099,13 +1138,7 @@ export class BillingService {
 
     if (commissionRate == null) return;
 
-    const { data: plan } = await supabase
-      .from('plans')
-      .select('price_monthly')
-      .eq('id', planId)
-      .single();
-
-    const amount = plan?.price_monthly ?? 0;
+    const amount = await this.billedAmount(planId, interval, supabase);
     const commission = Number(((amount * commissionRate) / 100).toFixed(2));
 
     await supabase.from('affiliate_sales').insert({

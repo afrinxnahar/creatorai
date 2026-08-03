@@ -37,6 +37,15 @@ export const CreatePromoCodeSchema = z.object({
 export type CreatePromoCodeInput = z.infer<typeof CreatePromoCodeSchema>;
 
 export const UpdatePromoCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(3, 'Code must be 3-256 characters')
+    .max(256, 'Code must be 3-256 characters')
+    .regex(/^[A-Za-z0-9]+$/, 'Only letters and numbers are allowed')
+    .optional(),
+  amount: z.number().positive().optional(),
+  amount_type: z.enum(['percent', 'fixed']).optional(),
   commission_rate: z.number().min(0).max(100).optional(),
   label: z.string().trim().max(120).optional(),
   is_active: z.boolean().optional(),

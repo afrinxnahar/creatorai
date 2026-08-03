@@ -37,6 +37,13 @@ export class AdminService {
 
   // ==================== DASHBOARD STATS ====================
 
+  /**
+   * How recently a user must have hit the API to count as "online now". The auth
+   * guard refreshes last_seen_at at most every 2 minutes, so anything under ~5
+   * would flicker for users who are reading rather than clicking.
+   */
+  private static readonly ONLINE_WINDOW_MINUTES = 5;
+
   async getDashboardStats() {
     const [
       usersRes,
@@ -48,6 +55,9 @@ export class AdminService {
       mailsRes,
       applicationsRes,
       affiliateRequestsRes,
+      onlineRes,
+      active24hRes,
+      errors24hRes,
     ] = await Promise.all([
       this.db.from('profiles').select('id', { count: 'exact', head: true }),
       this.db.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString()),
@@ -60,6 +70,19 @@ export class AdminService {
       this.db.from('mail_messages').select('id', { count: 'exact', head: true }).eq('status', 'unread'),
       this.db.from('job_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       this.db.from('affiliate_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      // "Online" = made an authenticated API call inside the presence window.
+      this.db
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .gte('last_seen_at', new Date(Date.now() - AdminService.ONLINE_WINDOW_MINUTES * 60000).toISOString()),
+      this.db
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .gte('last_seen_at', new Date(Date.now() - 86400000).toISOString()),
+      this.db
+        .from('error_logs')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', new Date(Date.now() - 86400000).toISOString()),
     ]);
 
     // Lemon Squeezy reports money in cents.
@@ -76,6 +99,10 @@ export class AdminService {
       unreadMails: mailsRes.count ?? 0,
       pendingApplications: applicationsRes.count ?? 0,
       pendingAffiliateRequests: affiliateRequestsRes.count ?? 0,
+      onlineUsers: onlineRes.count ?? 0,
+      onlineWindowMinutes: AdminService.ONLINE_WINDOW_MINUTES,
+      activeUsers24h: active24hRes.count ?? 0,
+      errors24h: errors24hRes.count ?? 0,
     };
   }
 
@@ -551,6 +578,26 @@ export class AdminService {
       }
     }
 
+    // Captured exceptions — the errors the job tables never saw (API failures,
+    // worker crashes). Same feed, with the detail hanging off error_logs.
+    if (wantFeature) {
+      tasks.push(
+        recent('error_logs', 'id, user_id, created_at, name, message, feature, source, status_code').then(({ data }) =>
+          ((data ?? []) as Array<Record<string, unknown>>).map((r): FeedEvent => ({
+            id: `error_logs:${r.id as string}`,
+            user_id: r.user_id as string,
+            category: 'error',
+            label: `${(r.feature as string) ?? (r.source as string)} · ${(r.name as string) ?? 'Error'}`,
+            action: r.status_code ? `HTTP ${r.status_code as number}` : (r.source as string),
+            status: 'failed',
+            error_message: r.message as string,
+            credits_consumed: 0,
+            created_at: r.created_at as string,
+          })),
+        ),
+      );
+    }
+
     if (wantSub) {
       tasks.push(
         recent('subscriptions', 'id, user_id, created_at, status, plans(name)').then(({ data }) =>
@@ -636,7 +683,11 @@ export class AdminService {
     }
 
     let merged = (await Promise.all(tasks)).flat();
-    if (category === 'error') merged = merged.filter((e) => e.category === 'error');
+    // 'feature' and 'error' share the same sources — a failed job is a feature row
+    // flipped to category 'error' — so both need filtering after the merge.
+    if (category === 'feature' || category === 'error') {
+      merged = merged.filter((e) => e.category === category);
+    }
     merged.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
 
     const total = merged.length;
@@ -650,6 +701,125 @@ export class AdminService {
 
     const data = pageRows.map((e) => ({ ...e, profiles: pmap.get(e.user_id) ?? null }));
     return { data, total, page, limit };
+  }
+
+  // ==================== ERROR LOGS ====================
+
+  /**
+   * Paginated error stream. `grouped` collapses to one row per fingerprint with
+   * an occurrence count — the view you want when triaging, since a single bug
+   * usually shows up as hundreds of near-identical rows.
+   */
+  async getErrorLogs(
+    page = 1,
+    limit = 30,
+    filters: { source?: string; feature?: string; userId?: string; since?: string } = {},
+  ) {
+    let query = this.db
+      .from('error_logs')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false });
+
+    if (filters.source) query = query.eq('source', filters.source);
+    if (filters.feature) query = query.eq('feature', filters.feature);
+    if (filters.userId) query = query.eq('user_id', filters.userId);
+    if (filters.since) query = query.gte('created_at', filters.since);
+
+    const { data, error, count } = await query.range((page - 1) * limit, page * limit - 1);
+    if (error) throw new InternalServerErrorException(error.message);
+
+    return {
+      data: await this.attachProfiles(data ?? []),
+      total: count ?? 0,
+      page,
+      limit,
+    };
+  }
+
+  /** One error with its full stack, plus how often this fingerprint has fired lately. */
+  async getErrorLog(id: string) {
+    const { data, error } = await this.db.from('error_logs').select('*').eq('id', id).single();
+    if (error || !data) throw new NotFoundException('Error log not found');
+
+    const [{ count: last24h }, { count: allTime }, { data: recent }] = await Promise.all([
+      this.db
+        .from('error_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('fingerprint', data.fingerprint)
+        .gte('created_at', new Date(Date.now() - 86400000).toISOString()),
+      this.db
+        .from('error_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('fingerprint', data.fingerprint),
+      this.db
+        .from('error_logs')
+        .select('id, user_id, created_at, status_code')
+        .eq('fingerprint', data.fingerprint)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ]);
+
+    const [withProfile] = await this.attachProfiles([data]);
+    return {
+      ...withProfile,
+      occurrences: { last24h: last24h ?? 0, allTime: allTime ?? 0 },
+      recent: recent ?? [],
+      /** Distinct users hit by this bug — the "how bad is it" number. */
+      affectedUsers: new Set((recent ?? []).map((r) => r.user_id).filter(Boolean)).size,
+    };
+  }
+
+  /** Most frequent errors in the window, worst first. The triage list. */
+  async getErrorSummary(hours = 24) {
+    const since = new Date(Date.now() - hours * 3600000).toISOString();
+    const { data, error } = await this.db
+      .from('error_logs')
+      .select('fingerprint, name, message, feature, source, status_code, user_id, created_at')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(AdminService.FEED_CAP * 5);
+    if (error) throw new InternalServerErrorException(error.message);
+
+    const groups = new Map<string, {
+      fingerprint: string; name: string; message: string; feature: string | null;
+      source: string; status_code: number | null; count: number; users: Set<string>; lastSeen: string;
+    }>();
+
+    for (const row of data ?? []) {
+      const existing = groups.get(row.fingerprint);
+      if (existing) {
+        existing.count += 1;
+        if (row.user_id) existing.users.add(row.user_id);
+        continue;
+      }
+      groups.set(row.fingerprint, {
+        fingerprint: row.fingerprint,
+        name: row.name ?? 'Error',
+        message: row.message,
+        feature: row.feature,
+        source: row.source,
+        status_code: row.status_code,
+        count: 1,
+        users: new Set(row.user_id ? [row.user_id] : []),
+        lastSeen: row.created_at,
+      });
+    }
+
+    return {
+      hours,
+      data: [...groups.values()]
+        .map(({ users, ...rest }) => ({ ...rest, affectedUsers: users.size }))
+        .sort((a, b) => b.count - a.count),
+    };
+  }
+
+  private async attachProfiles<T extends { user_id?: string | null }>(rows: T[]) {
+    const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))] as string[];
+    const { data: profiles } = userIds.length
+      ? await this.db.from('profiles').select('user_id, full_name, name, email, avatar_url').in('user_id', userIds)
+      : { data: [] };
+    const pmap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+    return rows.map((r) => ({ ...r, profiles: r.user_id ? pmap.get(r.user_id) ?? null : null }));
   }
 
   async logActivity(actorId: string, action: string, entityType: string, entityId?: string, metadata?: Record<string, unknown>) {

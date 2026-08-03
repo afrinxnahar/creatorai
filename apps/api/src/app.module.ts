@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import * as path from 'path';
@@ -26,6 +27,7 @@ import { AffiliateModule } from './affiliate/affiliate.module';
 import { VideoGenerationModule } from './video-generation/video-generation.module';
 import { HannahModule } from './hannah/hannah.module';
 import { EmailCampaignModule } from './email-campaign/email-campaign.module';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
 @Module({
   imports: [
@@ -72,6 +74,6 @@ import { EmailCampaignModule } from './email-campaign/email-campaign.module';
     EmailCampaignModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [],
+  providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
 export class AppModule { }

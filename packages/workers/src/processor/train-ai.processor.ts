@@ -2,7 +2,7 @@ import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createSupabaseClient, getSupabaseServiceEnv, SupabaseClient } from '@repo/supabase';
+import { createSupabaseClient, getSupabaseServiceEnv, reportError, SupabaseClient } from '@repo/supabase';
 import { Thumbnail } from "@repo/validation";
 import { GoogleGenAI } from '@google/genai';
 import { getGenAI } from './utils/genai';
@@ -163,6 +163,17 @@ export class TrainAiProcessor extends WorkerHost {
       const errorStack = error instanceof Error ? error.stack : undefined;
       await job.log(isCancelled ? 'Training cancelled by user' : `Error: ${errorMessage}`);
       this.logger.warn(`Job ${job.id} ${isCancelled ? 'cancelled' : 'failed'}: ${errorMessage}`, errorStack);
+
+      if (!isCancelled) {
+        void reportError(this.supabase, {
+          source: 'worker',
+          feature: 'train-ai',
+          userId,
+          error,
+          context: { jobId: job.id, videoCount: videoUrls?.length ?? 0, isRetraining },
+        });
+      }
+
       throw error;
     }
   }

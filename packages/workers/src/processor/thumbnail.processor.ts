@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { createSupabaseClient, getSupabaseServiceEnv, SupabaseClient } from '@repo/supabase';
+import { createSupabaseClient, getSupabaseServiceEnv, reportError, SupabaseClient } from '@repo/supabase';
 import {
   calculateThumbnailCreditsByCount,
   THUMBNAIL_CREDIT_MULTIPLIER,
@@ -200,6 +200,15 @@ ${prompt}`;
     } catch (error: any) {
       await job.log(`Fatal error: ${error.message}`);
       this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack);
+
+      void reportError(this.supabase, {
+        source: 'worker',
+        feature: 'thumbnail',
+        userId,
+        error,
+        context: { jobId: job.id, thumbnailJobId, ratio, generateCount, personalized },
+      });
+
       try {
         await this.updateJob(thumbnailJobId, {
           status: 'failed',
