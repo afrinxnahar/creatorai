@@ -4223,3 +4223,281 @@ MTPE means machine translation post-editing: the AI produces a first draft and a
 
 **How many languages should I dub into first?**
 Two, chosen from your YouTube Analytics geography report rather than from a list of the world's largest languages. Dub your two biggest non-primary audiences, watch the watch-time split for 60 days, and only then expand. Dubbing into eight languages at once is the most common way to waste a localization budget.
+
+---
+
+## YouTube Video Ideation: The 7-Step System That Beats Guessing
+
+- URL: https://tryscriptai.com/blog/youtube-video-ideation-system-for-youtube-creators-2026
+- Category: Video Ideas
+- Focus keyword: youtube video ideation
+- Summary: Most videos fail before the camera turns on, at the idea. Here is the 7-step ideation system that replaces brainstorming with evidence, and how to run it in minutes instead of hours.
+
+> **What is YouTube video ideation, and why does it matter more than editing?** YouTube video ideation is the structured process of finding, shaping and validating an idea before you film it, using audience demand, competitor outliers, content gaps and channel fit. It matters more than editing because a well-executed video on a topic nobody wanted still fails, while a mediocre execution of a wanted idea usually finds an audience.
+
+## Why YouTube Video Ideation Decides the Video Before You Film It
+
+Every creator has shipped the video that hurt. Ten hours of filming, six hours of editing, a thumbnail you were proud of, and 340 views. The instinct afterwards is to blame the edit or the algorithm. Almost always, the loss happened weeks earlier, at the idea.
+
+More than 500 hours of video are uploaded to YouTube every minute, according to [YouTube's own press figures](https://blog.youtube/press/). You are not competing for attention with an empty shelf. You are competing with everything already made on your topic, and the only real lever you control before filming is whether the idea was worth making at all.
+
+![The YouTube video ideation workflow inside Creator AI, showing trend signals and scored ideas](/ideation%20page.png)
+
+## The Hidden Cost of Skipping Ideation
+
+Skipping this step is not just a views problem, it is a burnout problem. An [Awin Group creator survey](https://www.prweb.com/releases/a-majority-of-content-creators-and-influencers-struggle-with-burnout-as-concerns-for-ai-begin-to-surface-according-to-a-new-awin-group-survey-research-302257152.html) found that 73 percent of creators and influencers experience burnout at least some of the time, and that constantly having to come up with new ideas ranks among the most cited causes, named by roughly half of respondents. Creative fatigue was the single most common driver at 40 percent.
+
+Read that again, because it reframes the problem. The exhausting part of YouTube is not the filming. It is waking up every week with a blank page and no system. A repeatable ideation process is a mental health feature as much as a growth one.
+
+## Step 1: Start With the Audience, Not the Topic
+
+The most common ideation mistake is asking "what should I make a video about?" The better question is "which viewers am I trying to reach, and what are they already watching?"
+
+This matches how the platform actually works. YouTube's recommendation system is a personalization engine that predicts whether a specific viewer will enjoy a specific video right now, built from watch history and session behaviour rather than broad topic labels. [Sprout Social's 2026 algorithm breakdown](https://sproutsocial.com/insights/youtube-algorithm/) and YouTube's own [search and discovery documentation](https://support.google.com/youtube/answer/141805) both land in the same place: your video is shown to people, not to a category.
+
+So the useful unit of ideation is not "cooking" or "productivity". It is "the person who watched three knife-skill videos last night and is still not confident dicing an onion".
+
+## Step 2: Harvest Demand Signals You Already Own
+
+Before touching an external tool, mine what your channel already tells you:
+
+- **Search terms** in YouTube Analytics that brought viewers to you
+- **Suggested video** traffic sources, which reveal what YouTube thinks you are adjacent to
+- **Comment questions**, especially the same question asked repeatedly
+- **Your own outliers**, the videos that beat your channel average on click-through rate
+
+Then widen out with [Google Trends](https://trends.google.com/trends/explore) to check whether interest in a subject is climbing or fading, and YouTube's search autocomplete to see the phrasing real people use. Our step-by-step guide to [finding trending YouTube video topics](/blog/how-to-find-trending-youtube-video-topics-2026) covers this research layer in more depth.
+
+## Step 3: Study Outliers, Not Averages
+
+An outlier is a video that dramatically beat its own channel's normal performance. That gap is the signal, because it isolates the idea from the creator's subscriber count.
+
+When you find one, do not copy the topic. Ask what made it break out:
+
+- Was it the **angle** (a contrarian take, a specific number, a named failure)?
+- Was it the **format** (a teardown instead of a tutorial)?
+- Was it **timing** (first credible video after a platform change)?
+
+Outlier study tells you which shapes of idea are currently rewarded in your niche. That is far more transferable than the topic itself.
+
+## Step 4: Find the Gap Between Demand and Supply
+
+A content gap is a mismatch between what viewers want and what already exists. The best gaps are rarely untouched subjects, they are subjects covered badly. Existing videos are outdated, too shallow, aimed at beginners when experienced viewers need help, or simply never answer the question in the title.
+
+Score each candidate on two axes:
+
+| Demand | Supply quality | Verdict |
+|--------|----------------|---------|
+| High | Weak or outdated | Film it now, this is the sweet spot |
+| High | Strong and recent | Only enter with a genuinely new angle |
+| Low | Weak | Fine as evergreen depth, not as a growth bet |
+| Low | Strong | Skip |
+
+That single table kills more bad ideas than any brainstorming session.
+
+## Step 5: Package the Idea Before You Commit
+
+Topic, title and thumbnail have to work as one unit, and the fastest way to test an idea is to write its packaging first. If you cannot draft a title you would click and describe a thumbnail in one sentence, the idea is still too vague to film.
+
+Write three title variations. If all three are boring, the problem is the idea, not your copywriting. This is also the cheapest possible moment to discover that. Once packaging holds up, our guide to [thumbnails that protect your click-through rate](/blog/best-ai-thumbnail-generator-for-youtube-creators-2026) covers the execution side.
+
+## Step 6: Score the Idea Instead of Arguing About It
+
+Gut feel does not scale, and it does not survive a bad week. Give every candidate a number across the same criteria:
+
+1. **Demand** — is anybody actually searching for or watching this?
+2. **Competition gap** — can you beat what already ranks?
+3. **Channel fit** — does your existing audience signal match?
+4. **Format viability** — can it be made visually watchable?
+5. **Your energy** — will you still care in edit three?
+
+Anything scoring well on four of five is a green light. Anything scoring badly on channel fit is a trap, no matter how exciting the trend is.
+
+## Step 7: Close the Loop After Publishing
+
+Ideation is a flywheel, not a one-off. After each upload, record which idea attributes correlated with performance: format, angle, title pattern, length. Within a few months you stop guessing what your specific audience wants, because you have your own data instead of generic advice.
+
+This is exactly the loop most creators skip, and it is why two channels with identical effort diverge after a year.
+
+## How Creator AI Automates YouTube Video Ideation
+
+Running the seven steps by hand takes one to two hours per video. Creator AI compresses it into a single run, and it is the reason our ideation feature exists at all.
+
+Here is what actually happens when you hit generate:
+
+1. **Channel intelligence loads first.** Creator AI uses what it learned from your real videos, tone, pacing, themes, humour style, structure, so ideas are shaped for your channel rather than a generic niche.
+2. **Live trend intelligence is gathered.** The pipeline pulls trending videos in your niche and runs a web-grounded search pass to build a snapshot of rising topics with momentum scores, saturated topics to avoid, early signals, niche gaps and competitor breakouts.
+3. **Ideas are synthesized.** Each idea comes back with a primary title plus alternate title variations, the core topic, a unique angle, why it works, a first-15-seconds hook concept, target keywords, a suggested format, talking points, source signals and a search-intent summary.
+4. **A differentiation check runs last.** Every idea is compared against your previous ideation runs and the competitor set, so you do not get handed a topic you already covered or a carbon copy of the video that is already winning.
+
+Each idea carries an opportunity score from 0 to 100 combining trend momentum, competition gap and channel fit, plus a rising, stable or declining momentum label. You also get a channel-fit summary listing your best formats, your content gaps and the title patterns that suit your channel. Results export as PDF or JSON, so a shortlist can go straight into your production board.
+
+Every plan gets the same ideation capability, up to 20 ideas per run, with usage bounded by credits rather than feature locks. See [what is included](/features) or [compare plans](/pricing).
+
+## A YouTube Video Ideation Checklist You Can Steal
+
+Before an idea earns a filming slot, it should pass all six:
+
+- There is evidence of demand, not a hunch
+- Existing coverage is weak, outdated or badly packaged
+- The topic sits inside your audience's proven interests
+- You can draft a title you would click and a thumbnail in one line
+- The format is visually makeable with the gear you own
+- You are still interested in it 48 hours later
+
+Print it, pin it above the desk, and refuse to film anything that fails two or more.
+
+## The Real Payoff
+
+Good YouTube video ideation is not about finding one viral idea. It is about permanently removing the blank page from your week. Creators who systematize this stop producing videos in bursts of anxiety and start producing them on a schedule, because the shortlist is always full and always scored.
+
+That predictability compounds. A channel that publishes twelve validated ideas a quarter will beat a channel that publishes twenty unvalidated ones, every time, with less work and considerably less burnout.
+
+## Keep Reading
+
+- [How to Find Trending YouTube Video Topics (Step-by-Step)](/blog/how-to-find-trending-youtube-video-topics-2026)
+- [Story Structure 101: Plan Videos That People Actually Finish](/blog/youtube-video-story-structure-for-retention-2026)
+- [How to Write YouTube Scripts That Get More Views](/blog/youtube-scripts-that-keep-viewers-watching)
+- Turn a scored idea into a full script in one workflow, [get started free](/signup).
+- References: [YouTube search and discovery](https://support.google.com/youtube/answer/141805), [Google Trends](https://trends.google.com/trends/explore), and the [Awin creator burnout survey](https://www.prweb.com/releases/a-majority-of-content-creators-and-influencers-struggle-with-burnout-as-concerns-for-ai-begin-to-surface-according-to-a-new-awin-group-survey-research-302257152.html).
+
+### FAQ
+
+**What is YouTube video ideation?**
+YouTube video ideation is the structured process of finding, shaping and validating a video idea before you film it. It combines audience demand signals, competitor outliers, content gaps and channel fit into a scored shortlist, rather than relying on brainstorming or inspiration.
+
+**How long should ideation take per video?**
+Manually, a serious ideation pass takes 60 to 120 minutes per video: analytics, search demand, outlier study, gap analysis and packaging drafts. With an AI ideation pipeline that loads your channel data and trend signals automatically, the same work lands in a few minutes and you spend your time judging rather than gathering.
+
+**Why do good videos still flop?**
+Usually because the idea was never validated. If nobody is searching for the topic, the existing videos already answer it well, or the subject sits outside your channel's proven audience, execution cannot rescue it. Ideation is where those three failures get caught cheaply.
+
+**Is chasing trends a good ideation strategy?**
+Only partly. Spikes win fast views but die in a week, while evergreen questions compound for years. A healthy publishing schedule mixes both, and the strongest picks sit where a rising trend overlaps with topics your channel already has credibility in.
+
+**What makes an idea worth filming?**
+Four things: demonstrable search or suggested demand, weak or outdated existing coverage, a genuine fit with your audience's watch history, and a title plus thumbnail you can already picture. If you cannot draft the packaging, the idea is not concrete enough yet.
+
+**Can AI do ideation for a small channel?**
+Yes, and small channels benefit most. Creator AI reads your existing videos to learn tone, pacing and themes, pulls live trend and competitor signals, then scores each idea on opportunity so a solo creator gets the research depth that normally requires a strategist.
+
+
+---
+
+## Best AI Video Idea Generator for YouTube (6 Tools Compared)
+
+- URL: https://tryscriptai.com/blog/best-ai-video-idea-generator-for-youtube-creators-2026
+- Category: Video Ideas
+- Focus keyword: ai video idea generator
+- Summary: Most idea generators hand you a list of titles with nothing behind them. We compared six tools on evidence, channel fit, packaging and price, and named the gap they all share.
+
+> **Which AI video idea generator should a YouTube creator actually use?** Pick based on what the tool proves, not how many ideas it produces. Keyword-led tools like vidIQ and TubeBuddy suit SEO-driven channels, outlier tools like 1of10 and OutlierKit suit creators hunting proven breakout formats, and Creator AI suits creators who want ideas scored against their own channel and carried straight through to a script.
+
+## Idea Volume Is Not the Problem
+
+Every AI video idea generator on the market can hand you fifty titles in ten seconds. That has been solved for years. The problem is that forty-eight of them are wrong for you, and the tool has no opinion about which two are not.
+
+That is the whole evaluation. A good AI video idea generator is not a list machine, it is a filter, and the questions worth asking are simple: what evidence sits behind each idea, does the tool know anything about my channel, and does the idea arrive concrete enough to film?
+
+![Comparison criteria for choosing an AI video idea generator for YouTube](/ideation%20page.png)
+
+## The Five Criteria We Compared On
+
+1. **Evidence** — does each idea come with demand or outlier data, or is it a hallucinated title?
+2. **Channel fit** — does the tool know your tone, themes and back catalogue?
+3. **Packaging depth** — do you get an angle, hook and format, or just a headline?
+4. **Workflow reach** — can the idea become a script, or does it stop at the shortlist?
+5. **Price honesty** — what does the AI tier actually cost, not the headline plan?
+
+## The Comparison Table
+
+| Tool | Ideas come from | Channel-aware | Output depth | Published price |
+|------|-----------------|---------------|--------------|-----------------|
+| [vidIQ](https://vidiq.com/) | Keyword scores, daily AI idea feed | Partly, via connected channel | Titles, keywords, coaching prompts | Boost from about 17.50 USD/mo annual |
+| [TubeBuddy](https://www.tubebuddy.com/) | Keyword explorer, tag and topic tools | Partly, via YouTube Studio integration | Titles, tags, A/B test tooling | Legend from about 14.50 USD/mo |
+| [1of10](https://1of10.com/) | Outlier videos across niches | No, niche-level | Outlier titles, AI title and idea gen | Free tier, AI features on Pro at about 69 USD/mo |
+| [OutlierKit](https://outlierkit.com/) | Outlier discovery, credit-based research | No, niche-level | Outlier data, research credits | Hobby from about 199 USD/yr |
+| ChatGPT or Claude | Model priors, no live platform data | No | Titles and rough outlines | From free, 20 USD/mo tiers |
+| Creator AI | Live trend pass plus your trained channel profile | Yes, trained on your real videos | Scored ideas with angle, hook, format, talking points, sources | Included on every plan, [see pricing](/pricing) |
+
+Prices are the vendors' published rates as of mid-2026 and change often. Comparisons like [vidIQ versus TubeBuddy](https://outlierkit.com/resources/vidiq-vs-tubebuddy/) are useful for the SEO side of the decision, but check each vendor's own page before subscribing.
+
+## Where Keyword Tools Win, and Where They Stop
+
+vidIQ and TubeBuddy earned their user bases honestly. If your growth comes from search, keyword scores, tag suggestions and competitor tag inspection are genuinely useful, and TubeBuddy's A/B testing is a real advantage for packaging.
+
+Their limit as an AI video idea generator is that keywords describe demand, not opportunity. A keyword with a great score and four excellent existing videos is a bad idea, and a keyword tool will happily show it to you in green.
+
+## Where Outlier Tools Win, and Where They Stop
+
+1of10 and OutlierKit approach ideation from the opposite direction: find videos that massively outperformed their channel's average, and reverse-engineer the pattern. This is the single best signal for format discovery, because it strips out subscriber count and isolates the idea.
+
+The limit is fit. An outlier proves a format worked for somebody's audience. It cannot tell you whether it will work for yours, and it does not know what you already published. Note also that 1of10's AI generation sits on its higher tier rather than the entry plan, which changes the maths for small channels.
+
+## Why a General Chatbot Is the Weakest AI Video Idea Generator
+
+Asking ChatGPT or Claude for video ideas feels productive because output arrives instantly. But a general model has no live view of YouTube, no access to your analytics, and no memory of your last thirty uploads. It predicts what a plausible video title looks like, which is why the suggestions skew toward topics that were popular in its training data and that thousands of other creators are being handed the same week.
+
+We went deeper on that failure mode in [why generic AI tools do not work for YouTube creators](/blog/why-generic-ai-tools-dont-work-for-youtube-creators). The short version: no evidence, no fit, no scoring.
+
+## What Creator AI's Ideation Actually Does
+
+Creator AI built ideation as a four-stage pipeline rather than a prompt, because the value is in the filtering, not the generating.
+
+**Stage 1, channel intelligence.** It loads the profile learned from your real videos, tone, vocabulary level, pacing, recurring themes, humour style and structure, so every idea is shaped for your channel instead of an average one.
+
+**Stage 2, trend intelligence.** It pulls trending videos in your niche and runs a web-grounded search pass, producing a snapshot with momentum-scored trending topics, saturated topics to avoid, early signals that are low volume but accelerating, under-served niche gaps and competitor breakout videos.
+
+**Stage 3, synthesis.** Each idea returns with a primary title, two to three title variations, the core topic, a unique angle, why it works, a first-15-seconds hook concept, target keywords, a suggested format, talking points, reference links and a search-intent summary, plus an opportunity score from 0 to 100 and a rising, stable or declining momentum label.
+
+**Stage 4, differentiation.** Every idea is checked against your previous ideation runs and the competitor set, so you are not handed a topic you already covered or a near-duplicate of the video already winning that search.
+
+You also get a channel-fit read: your best formats, your content gaps and the title patterns that suit your channel. Ideas export to PDF or JSON, and up to 20 ideas per run is available on every plan, with usage bounded by credits rather than feature gates.
+
+## The Gap Every Idea Tool Shares (Except One)
+
+Here is the honest structural point. Almost every AI video idea generator ends at the shortlist. You still open a different tool to write the script, a third to make the thumbnail, and a fourth for subtitles or dubbing.
+
+That handoff is where the research dies. The angle, hook and talking points that made an idea good rarely survive being retyped into a blank document. Creator AI's ideation feeds directly into scripting, story structure, thumbnails and subtitles, which is less a feature claim than the reason the pipeline outputs hooks and talking points at all. If you want the retention side of that chain, [audience retention and watch time](/blog/improve-youtube-audience-retention-watch-time) is the next read.
+
+## How to Choose in Under Two Minutes
+
+- **Search-driven channel, tight budget:** TubeBuddy for the price and A/B testing.
+- **Keyword research plus a daily idea feed:** vidIQ.
+- **Format hunting across niches:** 1of10 or OutlierKit, budget for the AI tier.
+- **You already pay for a script tool and want one workflow:** Creator AI.
+- **You are validating whether ideation tools help at all:** start with free tiers plus [Google Trends](https://trends.google.com/trends/explore) before spending anything.
+
+## The Bottom Line
+
+The best AI video idea generator is the one that makes your decisions cheaper, not your list longer. Judge candidates on evidence, channel awareness and how much of the idea survives into production, and most of the market thins out quickly.
+
+Whichever tool you choose, keep the discipline: an idea earns a filming slot when demand is demonstrable, existing coverage is beatable, and the fit with your audience is real. Software can gather that evidence in minutes. Deciding what to do with it stays your job, and that is the part worth your hours.
+
+## Keep Reading
+
+- [YouTube Video Ideation: The 7-Step System That Beats Guessing](/blog/youtube-video-ideation-system-for-youtube-creators-2026)
+- [How to Find Trending YouTube Video Topics (Step-by-Step)](/blog/how-to-find-trending-youtube-video-topics-2026)
+- [Why Generic AI Tools Don't Work for YouTube Creators](/blog/why-generic-ai-tools-dont-work-for-youtube-creators)
+- Go from scored idea to finished script in one place, [start free](/signup).
+- References: [vidIQ](https://vidiq.com/), [TubeBuddy](https://www.tubebuddy.com/), [1of10](https://1of10.com/), [OutlierKit pricing comparison](https://outlierkit.com/resources/vidiq-vs-tubebuddy/).
+
+### FAQ
+
+**What is the best AI video idea generator for YouTube in 2026?**
+It depends on what you need. vidIQ and TubeBuddy are strongest for keyword-led ideas alongside SEO tooling, 1of10 and OutlierKit are strongest for outlier discovery, and Creator AI is strongest when you want scored ideas trained on your own channel that flow straight into a script.
+
+**Is a free AI video idea generator good enough?**
+For a starting list, yes. Free tiers and general chatbots produce plenty of topics. What they cannot do is tell you whether demand exists, whether the topic is already saturated, or whether it fits your channel, which is exactly the part that determines whether the video works.
+
+**Why do ChatGPT's YouTube ideas feel generic?**
+Because it has no channel data and no live platform signal. It predicts plausible titles from training data, so you get safe, widely repeated topics with no opportunity score, no competitor context and no awareness of what you have already published.
+
+**How much do YouTube idea tools cost?**
+Published pricing in 2026 runs roughly from 14.50 USD a month for TubeBuddy's Legend tier and 17.50 USD a month for vidIQ's Boost tier on annual billing, up to 69 USD a month for 1of10's AI-enabled Pro tier and 199 USD a year for OutlierKit's entry credit plan. Always check the vendor's current page before buying.
+
+**What should an idea generator output beyond a title?**
+A usable idea includes the angle, why it works, a hook concept, a suggested format, target keywords, talking points, evidence links and a score. A bare title list moves the guessing from you to the software without removing it.
+
+**Do I still need to validate AI-generated ideas?**
+Yes. Treat any generated list as a shortlist, then check demand, competing coverage and channel fit before filming. Tools that already attach evidence and an opportunity score make that check minutes long instead of an hour.
