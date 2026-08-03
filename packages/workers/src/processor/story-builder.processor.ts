@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { createSupabaseClient, getSupabaseServiceEnv, SupabaseClient } from '@repo/supabase';
+import { createSupabaseClient, getSupabaseServiceEnv, reportError, SupabaseClient } from '@repo/supabase';
 import {
   type VideoDuration,
   type ContentType,
@@ -394,6 +394,14 @@ export class StoryBuilderProcessor extends WorkerHost {
     } catch (error: any) {
       await job.log(`Fatal error: ${error.message}`);
       this.logger.error(`Story builder job ${job.id} failed: ${error.message}`, error.stack);
+
+      void reportError(this.supabase, {
+        source: 'worker',
+        feature: 'story-builder',
+        userId,
+        error,
+        context: { jobId: job.id, storyJobId, videoTopic, storyMode, contentType, videoDuration },
+      });
 
       try {
         await this.updateJobStatus(storyJobId, 'failed', error.message?.slice(0, 5000));

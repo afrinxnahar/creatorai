@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { createSupabaseClient, getSupabaseServiceEnv, SupabaseClient } from '@repo/supabase';
+import { createSupabaseClient, getSupabaseServiceEnv, reportError, SupabaseClient } from '@repo/supabase';
 import {
   calculateCreditsFromTokens,
   SCRIPT_CREDIT_MULTIPLIER,
@@ -183,6 +183,14 @@ export class ScriptProcessor extends WorkerHost {
     } catch (error: any) {
       await job.log(`Fatal error: ${error.message}`);
       this.logger.error(`Script job ${job.id} failed: ${error.message}`, error.stack);
+
+      void reportError(this.supabase, {
+        source: 'worker',
+        feature: 'script',
+        userId,
+        error,
+        context: { jobId: job.id, scriptJobId, tone, language, duration, personalized },
+      });
 
       await this.supabase
         .from('scripts')

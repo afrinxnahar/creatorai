@@ -1,7 +1,7 @@
 import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { createSupabaseClient, getSupabaseServiceEnv, SupabaseClient } from '@repo/supabase';
+import { createSupabaseClient, getSupabaseServiceEnv, reportError, SupabaseClient } from '@repo/supabase';
 import {
   calculateDubbingCreditsByDuration,
   DUBBING_CREDIT_MULTIPLIER,
@@ -171,6 +171,14 @@ export class DubbingProcessor extends WorkerHost {
       await job.log(cancelled ? 'Cancelled by user.' : `Fatal error: ${error.message}`);
       if (!cancelled) {
         this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack);
+        // User-initiated cancellations aren't failures — never alert on them.
+        void reportError(this.supabase, {
+          source: 'worker',
+          feature: 'dubbing',
+          userId,
+          error,
+          context: { jobId: job.id, projectId, targetLanguage, targetAccent, durationSeconds, planName, isVideo },
+        });
       }
       try {
         await this.updateJob(projectId, { status: 'failed', error_message: error.message?.slice(0, 5000) });

@@ -1,7 +1,7 @@
 import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { createSupabaseClient, getSupabaseServiceEnv, SupabaseClient } from '@repo/supabase';
+import { createSupabaseClient, getSupabaseServiceEnv, reportError, SupabaseClient } from '@repo/supabase';
 import {
   calculateVideoGenerationCredits,
   VIDEO_GENERATION_CREDIT_MULTIPLIER,
@@ -146,7 +146,16 @@ export class VideoGenerationProcessor extends WorkerHost {
       const cancelled = error instanceof VideoCancelledError;
       await job.log(cancelled ? 'Cancelled by you' : `Fatal error: ${error.message}`);
       if (cancelled) this.logger.warn(`Job ${job.id} cancelled by user`);
-      else this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack);
+      else {
+        this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack);
+        void reportError(this.supabase, {
+          source: 'worker',
+          feature: 'video-generation',
+          userId,
+          error,
+          context: { jobId: job.id, videoJobId, mode, aspectRatio, durationSeconds, imageCount: images?.length ?? 0 },
+        });
+      }
       try {
         await this.updateJob(videoJobId, {
           status: cancelled ? 'cancelled' : 'failed',
