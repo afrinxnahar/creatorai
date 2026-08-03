@@ -4,10 +4,25 @@ import { SupabaseAuthGuard } from './auth.guard';
 import { SupabaseService } from '../supabase/supabase.service';
 
 const mockGetUser = jest.fn();
+const mockPresenceUpdate = jest.fn();
+
+// The guard also stamps profiles.last_seen_at for the admin "online now" count.
+const presenceChain = () => {
+  const chain: Record<string, unknown> = {};
+  chain.update = jest.fn(() => chain);
+  chain.eq = jest.fn(() => chain);
+  chain.or = jest.fn(() => chain);
+  chain.then = (resolve: (v: { error: null }) => unknown) => {
+    mockPresenceUpdate();
+    return Promise.resolve(resolve({ error: null }));
+  };
+  return chain;
+};
 
 const mockSupabaseService = {
   getClient: () => ({
     auth: { getUser: mockGetUser },
+    from: jest.fn(() => presenceChain()),
   }),
 };
 
@@ -57,5 +72,6 @@ describe('SupabaseAuthGuard', () => {
 
     const request = ctx.switchToHttp().getRequest();
     expect(request.user).toEqual(mockUser);
+    expect(mockPresenceUpdate).toHaveBeenCalled();
   });
 });
