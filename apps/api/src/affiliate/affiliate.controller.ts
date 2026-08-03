@@ -312,12 +312,19 @@ export class AffiliateController {
   @Put('admin/promo-codes/:id')
   @UseGuards(RolesGuard)
   @Roles('admin')
-  @ApiOperation({ summary: '[Admin] Update a promo code' })
+  @ApiOperation({
+    summary: '[Admin] Update a promo code',
+    description:
+      'Changing the code or amount recreates the Lemon Squeezy discount (LS has no update endpoint). Setting is_active to false deletes the discount in Lemon Squeezy so it stops applying at checkout.',
+  })
   @ApiParam({ name: 'id' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
+        code: { type: 'string' },
+        amount: { type: 'number' },
+        amount_type: { type: 'string', enum: ['percent', 'fixed'] },
         commission_rate: { type: 'number' },
         label: { type: 'string' },
         is_active: { type: 'boolean' },
@@ -329,6 +336,18 @@ export class AffiliateController {
     @Body(new ZodValidationPipe(UpdatePromoCodeSchema)) body: UpdatePromoCodeInput,
   ) {
     return this.affiliateService.updatePromoCode(id, body);
+  }
+
+  @Delete('admin/promo-codes/:id')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @ApiOperation({
+    summary: '[Admin] Delete a promo code (also deletes the Lemon Squeezy discount)',
+    description: 'Rejected with 409 when the code already has attributed sales — deactivate it instead.',
+  })
+  @ApiParam({ name: 'id' })
+  deletePromoCode(@Param('id') id: string) {
+    return this.affiliateService.deletePromoCode(id);
   }
 
   @Get('admin/ls-discounts')

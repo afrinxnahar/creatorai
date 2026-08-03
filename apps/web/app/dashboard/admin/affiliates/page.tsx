@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { api } from "@/lib/api-client"
+import { api, getApiErrorMessage } from "@/lib/api-client"
 import {
   useAdminAffiliateRequests,
   useAdminLsAffiliates,
@@ -32,6 +32,7 @@ import {
   Calendar,
   StickyNote,
   Ticket,
+  Trash2,
   Banknote,
 } from "lucide-react"
 import { AdminButton } from "@/components/admin/admin-button"
@@ -846,6 +847,8 @@ function PromoCodesTab() {
   const [form, setForm] = useState({ owner_id: "", code: "", amount: "20", amount_type: "percent", commission_rate: "20", label: "" })
   const [edit, setEdit] = useState<AffiliatePromoCode | null>(null)
   const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<AffiliatePromoCode | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const loadUsers = useCallback(async (search: string) => {
     try {
@@ -891,20 +894,45 @@ function PromoCodesTab() {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!edit) return
+    if (!edit.code || edit.code.length < 3) { toast.error("Code must be at least 3 characters"); return }
+    if (!(Number(edit.amount) > 0)) { toast.error("Discount amount must be greater than 0"); return }
     try {
       setSaving(true)
       await adminApi.updatePromoCode(edit.id, {
-        commission_rate: edit.commission_rate,
+        code: edit.code.toUpperCase(),
+        amount: Number(edit.amount),
+        amount_type: edit.amount_type,
+        commission_rate: Number(edit.commission_rate),
         label: edit.label || undefined,
         is_active: edit.is_active,
       })
-      toast.success("Promo code updated")
+      toast.success(
+        edit.is_active
+          ? "Promo code updated in Lemon Squeezy"
+          : "Promo code deactivated and removed from Lemon Squeezy",
+      )
       setEdit(null)
       refresh()
-    } catch {
-      toast.error("Failed to update promo code")
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Failed to update promo code"))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return
+    try {
+      setDeleting(true)
+      await adminApi.deletePromoCode(confirmDelete.id)
+      toast.success("Promo code deleted here and in Lemon Squeezy")
+      setConfirmDelete(null)
+      refresh()
+    } catch (err) {
+      // 409 when the code already has attributed sales — deactivate instead.
+      toast.error(getApiErrorMessage(err, "Failed to delete promo code"))
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -928,18 +956,22 @@ function PromoCodesTab() {
                 <th className="px-4 py-3 font-medium">Owner</th>
                 <th className="px-4 py-3 font-medium">Discount</th>
                 <th className="px-4 py-3 font-medium">Commission %</th>
-                <th className="px-4 py-3 font-medium">Active</th>
+                <th className="px-4 py-3 font-medium">Conversions</th>
+                <th className="px-4 py-3 font-medium">Revenue</th>
+                <th className="px-4 py-3 font-medium">Owed</th>
+                <th className="px-4 py-3 font-medium">Created</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={6} className="px-4 py-3"><div className="h-5 bg-slate-800 rounded animate-pulse" /></td></tr>
+                  <tr key={i}><td colSpan={10} className="px-4 py-3"><div className="h-5 bg-slate-800 rounded animate-pulse" /></td></tr>
                 ))
               ) : !data?.length ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
                     <Ticket className="h-8 w-8 mx-auto mb-2 opacity-30" />
                     No promo codes yet
                   </td>
@@ -948,22 +980,49 @@ function PromoCodesTab() {
                 data.map((promo) => (
                   <tr key={promo.id} className="hover:bg-slate-900/30">
                     <td className="px-4 py-3">
-                      <span className="font-mono text-xs text-pink-400 bg-pink-900/20 px-2 py-0.5 rounded">{promo.code}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs text-pink-400 bg-pink-900/20 px-2 py-0.5 rounded">{promo.code}</span>
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(promo.code); toast.success("Code copied") }}
+                          className="p-1 rounded hover:bg-slate-800 text-slate-500 hover:text-slate-300"
+                          title="Copy code"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
+                      {promo.label && <p className="text-[11px] text-slate-500 mt-1">{promo.label}</p>}
                     </td>
-                    <td className="px-4 py-3 text-slate-400">{promo.profiles?.full_name || promo.profiles?.email || "-"}</td>
+                    <td className="px-4 py-3 text-slate-400">
+                      {promo.profiles?.full_name || promo.profiles?.email || "-"}
+                      {promo.profiles?.full_name && promo.profiles?.email && (
+                        <p className="text-[11px] text-slate-500">{promo.profiles.email}</p>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-300">
                       {promo.amount_type === "percent" ? `${promo.amount}%` : `$${promo.amount}`}
                     </td>
                     <td className="px-4 py-3 text-slate-300">{promo.commission_rate}%</td>
+                    <td className="px-4 py-3 text-slate-300">{promo.stats?.conversions ?? 0}</td>
+                    <td className="px-4 py-3 text-slate-300">${(promo.stats?.revenue ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-emerald-400">${(promo.stats?.commission ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-slate-400 text-xs">{new Date(promo.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${promo.is_active ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}`}>
                         {promo.is_active ? "Active" : "Inactive"}
                       </span>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        {promo.ls_discount_id ? `LS #${promo.ls_discount_id}` : "Not in Lemon Squeezy"}
+                      </p>
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setEdit(promo)} className="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200" title="Edit">
-                        <Edit className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => setEdit(promo)} className="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-slate-200" title="Edit">
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => setConfirmDelete(promo)} className="p-1.5 rounded hover:bg-red-900/40 text-slate-400 hover:text-red-400" title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -1043,6 +1102,40 @@ function PromoCodesTab() {
           </DialogHeader>
           {edit && (
             <form onSubmit={handleSaveEdit} className="space-y-4 py-4">
+              <div className="grid gap-3 sm:grid-cols-3 rounded-lg bg-slate-800/40 p-3 text-xs">
+                <div>
+                  <p className="text-slate-500">Owner</p>
+                  <p className="text-slate-200 mt-0.5">{edit.profiles?.full_name || edit.profiles?.email || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Conversions</p>
+                  <p className="text-slate-200 mt-0.5">{edit.stats?.conversions ?? 0}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Commission owed</p>
+                  <p className="text-emerald-400 mt-0.5">${(edit.stats?.commission ?? 0).toFixed(2)}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Code</label>
+                <Input value={edit.code} onChange={(e) => setEdit({ ...edit, code: e.target.value.toUpperCase() })} className="bg-slate-800 border-slate-700 text-slate-200 font-mono" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Discount amount</label>
+                  <Input type="number" value={edit.amount} onChange={(e) => setEdit({ ...edit, amount: Number(e.target.value) })} className="bg-slate-800 border-slate-700 text-slate-200" min="1" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 mb-1 block">Type</label>
+                  <Select value={edit.amount_type} onValueChange={(v: string) => setEdit({ ...edit, amount_type: v as "percent" | "fixed" })}>
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-200"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectItem value="percent">Percent (%)</SelectItem>
+                      <SelectItem value="fixed">Fixed ($)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Commission rate (%)</label>
                 <Input type="number" value={edit.commission_rate} onChange={(e) => setEdit({ ...edit, commission_rate: Number(e.target.value) })} className="bg-slate-800 border-slate-700 text-slate-200" min="0" max="100" />
@@ -1058,12 +1151,35 @@ function PromoCodesTab() {
                 </button>
                 <span className="text-sm text-slate-300">{edit.is_active ? "Active" : "Inactive"}</span>
               </div>
+              <p className="text-xs text-slate-500">
+                Lemon Squeezy has no edit endpoint for discounts, so changing the code or amount
+                recreates it there. Deactivating deletes it from Lemon Squeezy, which stops the
+                discount working immediately; reactivating creates it again.
+              </p>
               <DialogFooter>
                 <AdminButton type="button" variant="tertiary" onClick={() => setEdit(null)}>Cancel</AdminButton>
                 <AdminButton type="submit" variant="primary" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</AdminButton>
               </DialogFooter>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100">
+          <DialogHeader>
+            <DialogTitle>Delete <span className="font-mono text-pink-400">{confirmDelete?.code}</span>?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-400 py-2">
+            This deletes the code here and the discount in Lemon Squeezy. Codes with attributed
+            sales can&apos;t be deleted — deactivate those instead so commission history survives.
+          </p>
+          <DialogFooter>
+            <AdminButton type="button" variant="tertiary" onClick={() => setConfirmDelete(null)}>Cancel</AdminButton>
+            <AdminButton type="button" variant="primary" tone="danger" disabled={deleting} onClick={handleDelete}>
+              {deleting ? "Deleting..." : "Delete"}
+            </AdminButton>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
