@@ -14,6 +14,7 @@ import { type SupabaseClient, type User, type Session } from "@supabase/supabase
 // Type-only: a value import here dragged all of @repo/validation (zod, ~56kB)
 // into every page's first-load JS, including the marketing pages.
 import type { UserProfile } from "@repo/validation"
+import { captureAttribution } from "@/lib/attribution"
 
 type SupabaseContext = {
   /**
@@ -133,12 +134,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-    const params = new URLSearchParams(window.location.search)
-    const ref = params.get("ref")
-    if (ref) {
-      localStorage.setItem("affiliate_ref", JSON.stringify({ code: ref, ts: Date.now() }))
-    }
+    captureAttribution()
   }, [])
 
   useEffect(() => {

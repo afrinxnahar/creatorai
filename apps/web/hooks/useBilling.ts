@@ -5,6 +5,7 @@ import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { useSupabase } from "@/components/supabase-provider";
 import { trackFunnel } from "@/lib/funnel";
+import { readAttribution } from "@/lib/attribution";
 
 interface Plan {
   id: string;
@@ -84,23 +85,12 @@ export function useBilling() {
     if (planName) trackFunnel("plan_clicked", planName);
 
     try {
-      let affiliateCode: string | undefined;
-      if (typeof window !== "undefined") {
-        try {
-          const raw = localStorage.getItem("affiliate_ref");
-          if (raw) {
-            const { code, ts } = JSON.parse(raw) as { code: string; ts: number };
-            const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-            if (Date.now() - ts < THIRTY_DAYS) affiliateCode = code;
-            else localStorage.removeItem("affiliate_ref");
-          }
-        } catch { /* ignore malformed data */ }
-      }
       const { url } = await api.post<{ url: string }>(
         "/api/v1/billing/checkout",
         {
           planId,
-          affiliateCode,
+          affiliateCode: readAttribution("affiliate_ref"),
+          promoCode: readAttribution("promo_code"),
           interval,
           origin:
             typeof window !== "undefined" ? window.location.origin : undefined,

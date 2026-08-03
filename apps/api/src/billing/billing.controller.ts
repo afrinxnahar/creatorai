@@ -110,6 +110,11 @@ export class BillingController {
       properties: {
         planId: { type: 'string' },
         affiliateCode: { type: 'string' },
+        promoCode: {
+          type: 'string',
+          description:
+            'Promo code captured from ?promo=CODE. Pre-filled on the Lemon Squeezy checkout when it matches an active code; ignored otherwise.',
+        },
         interval: {
           type: 'string',
           enum: ['monthly', 'annual'],
@@ -129,6 +134,7 @@ export class BillingController {
     body: {
       planId: string;
       affiliateCode?: string;
+      promoCode?: string;
       origin?: string;
       interval?: 'monthly' | 'annual';
     },
@@ -141,6 +147,7 @@ export class BillingController {
       body.affiliateCode,
       body.origin,
       body.interval === 'annual' ? 'annual' : 'monthly',
+      body.promoCode,
     );
   }
 
