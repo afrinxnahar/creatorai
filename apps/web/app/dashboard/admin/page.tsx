@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
 import { useAdminStats, useAdminFunnel } from "@/hooks/useAdmin"
 import type { FunnelTierBreakdown } from "@repo/validation"
@@ -22,6 +23,8 @@ import {
   Sparkles,
   Eye,
   MousePointerClick,
+  Radio,
+  AlertTriangle,
 } from "lucide-react"
 
 type StatConfig = {
@@ -136,10 +139,38 @@ function FunnelSection() {
 }
 
 export default function AdminDashboardPage() {
-  const { stats, loading } = useAdminStats()
+  const { stats, loading, refresh } = useAdminStats()
+
+  // "Online now" is only useful if it is actually now.
+  useEffect(() => {
+    const id = setInterval(refresh, 30_000)
+    return () => clearInterval(id)
+  }, [refresh])
   const { profile } = useSupabase()
 
   const firstName = (profile?.full_name || profile?.email || "Admin").split(" ")[0]
+
+  const live: StatConfig[] = [
+    {
+      label: "Online Now",
+      value: stats?.onlineUsers ?? 0,
+      icon: Radio,
+      gradient: "from-green-500 to-emerald-500",
+      accent: "text-green-400",
+      href: "/dashboard/admin/users",
+      hint: `active in the last ${stats?.onlineWindowMinutes ?? 5} min`,
+    },
+    { label: "Active Today", value: stats?.activeUsers24h ?? 0, icon: Activity, gradient: "from-teal-500 to-cyan-500", accent: "text-teal-400", hint: "last 24 hours" },
+    {
+      label: "Errors",
+      value: stats?.errors24h ?? 0,
+      icon: AlertTriangle,
+      gradient: "from-red-500 to-orange-500",
+      accent: "text-red-400",
+      href: "/dashboard/admin/errors",
+      hint: "last 24 hours",
+    },
+  ]
 
   const growth: StatConfig[] = [
     { label: "Total Users", value: stats?.totalUsers ?? 0, icon: Users, gradient: "from-blue-500 to-cyan-500", accent: "text-blue-400", href: "/dashboard/admin/users" },
@@ -213,6 +244,13 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Right now</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {live.map((s) => <StatCard key={s.label} {...s} />)}
+        </div>
+      </section>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">

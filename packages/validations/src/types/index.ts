@@ -24,6 +24,56 @@ export interface AdminDashboardStats {
   unreadMails: number
   pendingApplications: number
   pendingAffiliateRequests: number
+  /** Users who hit the API within `onlineWindowMinutes`. */
+  onlineUsers: number
+  onlineWindowMinutes: number
+  activeUsers24h: number
+  errors24h: number
+}
+
+export interface ErrorLogProfile {
+  user_id: string
+  full_name: string | null
+  name: string | null
+  email: string | null
+  avatar_url: string | null
+}
+
+export interface ErrorLog {
+  id: string
+  /** Stable hash grouping every occurrence of the same bug. */
+  fingerprint: string
+  source: 'api' | 'worker'
+  feature: string | null
+  user_id: string | null
+  name: string | null
+  message: string
+  stack: string | null
+  route: string | null
+  method: string | null
+  status_code: number | null
+  context: Record<string, unknown>
+  alerted_at: string | null
+  created_at: string
+  profiles: ErrorLogProfile | null
+}
+
+export interface ErrorLogDetail extends ErrorLog {
+  occurrences: { last24h: number; allTime: number }
+  recent: Array<{ id: string; user_id: string | null; created_at: string; status_code: number | null }>
+  affectedUsers: number
+}
+
+export interface ErrorGroup {
+  fingerprint: string
+  name: string
+  message: string
+  feature: string | null
+  source: string
+  status_code: number | null
+  count: number
+  affectedUsers: number
+  lastSeen: string
 }
 
 export interface RevenueByTier {
@@ -148,6 +198,7 @@ export interface AffiliatePromoCode {
   created_at: string
   updated_at: string
   profiles?: { full_name: string; email: string } | null
+  stats?: { conversions: number; revenue: number; commission: number }
 }
 
 export type PayoutMethodType = 'paypal' | 'wise' | 'bank'
