@@ -126,15 +126,17 @@ export function AffiliateHub() {
     toast.success("Affiliate link copied");
   };
 
-  const copyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast.success("Promo code copied");
+  const copyCode = (value: string, message = "Promo code copied") => {
+    navigator.clipboard.writeText(value);
+    toast.success(message);
   };
 
   return (
     <TooltipProvider delayDuration={150}>
       <div className="space-y-6">
         <HubHeader />
+
+        <TermsBanner />
 
         <ProgramHighlights minWithdrawal={stats?.minWithdrawal ?? 50} />
 
@@ -207,6 +209,24 @@ function HubHeader() {
           <Sparkles className="h-4 w-4" /> How the program works
         </Link>
       </div>
+    </div>
+  );
+}
+
+function TermsBanner() {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-slate-900/40 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-slate-600 dark:text-slate-400">
+        <Info className="mr-1.5 inline h-4 w-4 -translate-y-px text-purple-500" />
+        Promo code discounts apply to your buyer&apos;s <strong>first payment</strong> — your
+        20% keeps running on their renewals, up to 12 payments.
+      </p>
+      <Link
+        href="/affiliate-terms"
+        className="shrink-0 font-medium text-purple-600 underline underline-offset-4 hover:text-purple-800 dark:text-purple-400"
+      >
+        Full program terms
+      </Link>
     </div>
   );
 }
@@ -587,7 +607,7 @@ function PromoCodesSection({
   baseUrl,
 }: {
   promoCodes: ReturnType<typeof useAffiliateHub>["promoCodes"];
-  onCopy: (code: string) => void;
+  onCopy: (value: string, message?: string) => void;
   baseUrl: string;
 }) {
   return (
@@ -627,9 +647,14 @@ function PromoCodesSection({
                   {promo.commission_rate}% commission
                   {!promo.is_active && " · inactive"}
                 </p>
-                <p className="text-[11px] text-slate-400 mt-1 truncate">
-                  Share: {baseUrl}/?promo={promo.code}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => onCopy(`${baseUrl}/?promo=${promo.code}`, "Share link copied")}
+                  className="mt-1 flex w-full items-center gap-1 text-left text-[11px] text-slate-400 hover:text-pink-600 dark:hover:text-pink-300"
+                >
+                  <Copy className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{baseUrl}/?promo={promo.code}</span>
+                </button>
               </div>
             ))}
           </div>

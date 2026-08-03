@@ -24,6 +24,8 @@ const viewport = { once: true, margin: "-80px" } as const;
 const EARNINGS_POINTS = [
   "20% of every payment, automatically attributed to you",
   "Recurring for up to 12 monthly renewals per customer",
+  "Promo codes discount your audience and still pay you the full rate",
+  "One month of Creator membership free, on us, after your first sale",
   "Refund-protected with a 30-day maturity window",
   "Withdraw from $50 via PayPal, Wise, or bank transfer",
 ];
@@ -304,6 +306,16 @@ export default function AffiliateProgramContent() {
               </Link>
             </motion.div>
           </div>
+          <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+            Commission, promo codes and payouts are covered by our{" "}
+            <Link
+              href="/affiliate-terms"
+              className="font-medium text-purple-600 underline underline-offset-4 hover:text-purple-800 dark:text-purple-400"
+            >
+              Affiliate Program Terms
+            </Link>
+            .
+          </p>
         </motion.div>
       </section>
     </main>

@@ -14,7 +14,7 @@ export const PAGE_PATH = "/affiliate-program";
 export const PAGE_TITLE = "Use, promote and Earn | Creator AI Affiliate Program (20% Recurring)";
 
 export const PAGE_DESCRIPTION =
-  "Join the Creator AI affiliate program and earn 20% recurring commission on every subscription you refer, for up to 12 months per customer. Free to join, $50 minimum payout, paid via PayPal, Wise, or bank transfer.";
+  "Join the Creator AI affiliate program and earn 20% recurring commission on every subscription you refer, for up to 12 months per customer. Share a tracking link or a promo code that discounts your audience, get a month of Creator free, and withdraw from $50 via PayPal, Wise, or bank transfer.";
 
 export const FAQ: { question: string; answer: string }[] = [
   {
@@ -40,7 +40,27 @@ export const FAQ: { question: string; answer: string }[] = [
   {
     question: "How are referrals tracked?",
     answer:
-      "Each affiliate gets a unique link (yourdomain.com/?ref=YOURCODE). When someone signs up through your link and subscribes to a paid plan, the sale is automatically attributed to you. Admin-issued promo codes are also tracked to your account.",
+      "Each affiliate gets a unique link (tryscriptai.com/?ref=YOURCODE). When someone signs up through your link and subscribes to a paid plan, the sale is automatically attributed to you. The referral is remembered in the visitor's browser for 30 days, so they don't have to buy on the same visit.",
+  },
+  {
+    question: "What is a promo code and how do I get one?",
+    answer:
+      "A promo code is a discount our team issues to you and ties to your account. Your audience gets money off, and you still earn your commission on the sale. Codes are issued at our discretion, usually to affiliates who are actively promoting; any code assigned to you appears in your Affiliate Hub.",
+  },
+  {
+    question: "How does the promo code discount work at checkout?",
+    answer:
+      "Share the code itself, or the link version (tryscriptai.com/?promo=YOURCODE) which applies the discount automatically at checkout so nobody has to remember to type it. Unless stated otherwise on the code, the discount applies to the buyer's first payment — your commission still runs across their renewals, up to 12 payments.",
+  },
+  {
+    question: "Do I get anything on Creator AI itself for being an affiliate?",
+    answer:
+      "Yes. Active affiliates get one month of Creator membership free, granted by our team once your first referred payment matures. It's one per affiliate account and can't be exchanged for cash or credit.",
+  },
+  {
+    question: "What if someone uses my promo code but arrived on another affiliate's link?",
+    answer:
+      "A sale is credited to one affiliate. If a buyer has both a stored referral link and a redeemed promo code, the promo code wins, because that's the code that actually discounted the order.",
   },
   {
     question: "What happens if a referred customer asks for a refund?",
@@ -58,7 +78,7 @@ export const STEPS: { icon: LucideIcon; title: string; text: string }[] = [
   {
     icon: Share2,
     title: "Share your link or promo code",
-    text: "Generate a unique tracking link, or share an admin-issued promo code that gives your audience a discount.",
+    text: "Generate a unique tracking link, or share a promo code issued to you — it discounts your audience and applies itself at checkout.",
   },
   {
     icon: Wallet,
