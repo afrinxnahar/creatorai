@@ -132,7 +132,6 @@ export const markdownComponents: Components = {
               title={caption}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              loading="lazy"
               className="h-full w-full"
             />
           </span>

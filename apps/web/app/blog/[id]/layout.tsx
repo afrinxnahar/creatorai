@@ -126,7 +126,9 @@ export default async function BlogPostLayout({
     uploadDate: toIsoDate(video.uploadDate),
     ...(video.duration ? { duration: video.duration } : {}),
     contentUrl: `https://www.youtube.com/watch?v=${video.youtubeId}`,
-    embedUrl: `https://www.youtube.com/embed/${video.youtubeId}`,
+    // Must match the iframe src rendered by markdownComponents.tsx — Google
+    // cross-checks embedUrl against the actual player on the page.
+    embedUrl: `https://www.youtube-nocookie.com/embed/${video.youtubeId}`,
     publisher: {
       "@type": "Organization",
       name: siteConfig.name,
