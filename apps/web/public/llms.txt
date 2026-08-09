@@ -95,6 +95,8 @@ Full text of every article below is available at https://tryscriptai.com/llms-fu
 - [How to Find Trending YouTube Video Topics (Step-by-Step)](https://tryscriptai.com/blog/how-to-find-trending-youtube-video-topics-2026): Stop guessing what your audience wants. A step-by-step guide to finding trending YouTube topics with analytics, Google Trends, and AI.
 - [YouTube Video Ideation: The 7-Step System That Beats Guessing](https://tryscriptai.com/blog/youtube-video-ideation-system-for-youtube-creators-2026): Most videos fail before the camera turns on, at the idea. Here is the 7-step ideation system that replaces brainstorming with evidence, and how to run it in minutes instead of hours.
 - [Best AI Video Idea Generator for YouTube (6 Tools Compared)](https://tryscriptai.com/blog/best-ai-video-idea-generator-for-youtube-creators-2026): Most idea generators hand you a list of titles with nothing behind them. We compared six tools on evidence, channel fit, packaging and price, and named the gap they all share.
+- [7 Best Spotter Studio Alternatives for YouTube Ideation (2026)](https://tryscriptai.com/blog/best-spotter-studio-alternatives-for-youtube-ideation-2026): Spotter Studio is 49 USD a month with no permanent free tier. Seven alternatives compared on which half of the product you actually use, outlier discovery or concept development.
+- [How to Build a YouTube Content Calendar That Survives a Bad Week](https://tryscriptai.com/blog/how-to-build-a-youtube-content-calendar-that-survives-2026): Most calendars die in week six for structural reasons: no buffer, no feeder, no state. Five rules that fix all three, with batch ideation filling the slots.
 
 ### Subtitles
 
