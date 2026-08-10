@@ -2717,11 +2717,11 @@ Yes. AI tools like Creator AI structure scripts with hooks, open loops, and patt
 
 > **Does YouTube auto-dubbing use your real voice?** No. YouTube's native auto-dubbing uses a generic synthesized voice, not a clone of the creator. It translates your words into 27 languages for free, but viewers in those languages hear a competent stranger, not you. AI voice cloning tools like Creator AI preserve your actual voice so the dub still sounds like the person your audience subscribed to.
 
+![AI voice cloning walkthrough: dub YouTube videos in your own voice with Creator AI](https://www.youtube.com/watch?v=Yg4J8mUJo-M)
+
 YouTube's native auto-dubbing went fully public in early 2026. As of February it covers 27 languages and is open to essentially every eligible creator, not just Partner Program members. YouTube reported that in December 2025 more than 6 million people per day watched at least 10 minutes of auto-dubbed content. The demand is real and validated.
 
 So the question in 2026 isn't *should* you dub. YouTube already settled that. The question is *with what voice*, because the free default ships with a hidden cost that doesn't show up until you read your retention graph.
-
-![AI voice cloning walkthrough: dub YouTube videos in your own voice with Creator AI](https://www.youtube.com/watch?v=Yg4J8mUJo-M)
 
 ## Does YouTube Auto-Dubbing Use Your Real Voice?
 
@@ -4224,6 +4224,7 @@ MTPE means machine translation post-editing: the AI produces a first draft and a
 **How many languages should I dub into first?**
 Two, chosen from your YouTube Analytics geography report rather than from a list of the world's largest languages. Dub your two biggest non-primary audiences, watch the watch-time split for 60 days, and only then expand. Dubbing into eight languages at once is the most common way to waste a localization budget.
 
+
 ---
 
 ## YouTube Video Ideation: The 7-Step System That Beats Guessing
@@ -4502,6 +4503,7 @@ A usable idea includes the angle, why it works, a hook concept, a suggested form
 **Do I still need to validate AI-generated ideas?**
 Yes. Treat any generated list as a shortlist, then check demand, competing coverage and channel fit before filming. Tools that already attach evidence and an opportunity score make that check minutes long instead of an hour.
 
+
 ---
 
 ## 7 Best Spotter Studio Alternatives for YouTube Ideation (2026)
@@ -4653,6 +4655,7 @@ Creator AI does, and it is the main structural difference. Spotter Studio stops 
 
 **Does Spotter Studio have eligibility requirements?**
 Its positioning and pricing effectively gate it toward established channels rather than beginners, and there is no permanent free tier to evaluate it on a small channel. If you are early, that alone makes the alternatives the more sensible starting point.
+
 
 ---
 
@@ -4808,3 +4811,301 @@ Publish from the buffer and treat the miss as a signal, not a failure. If you ha
 
 **Should the calendar live in a spreadsheet or a tool?**
 Whichever one you will actually open on a Monday morning. A spreadsheet with an honest status column beats a sophisticated planner nobody updates. What matters is that ideation feeds it automatically, so slots get filled from a scored queue rather than from memory.
+
+
+---
+
+## 7 Best Free AI Script Generator Tools for YouTube (2026, Tested)
+
+- URL: https://tryscriptai.com/blog/best-free-ai-script-generator-tools-for-youtube-videos-2026
+- Category: Script Writing
+- Focus keyword: free ai script generator
+- Summary: Every free script tool advertises the same thing and hides the same limits. We ran seven of them on the same brief and compared output quality, real free-tier caps and what breaks the moment you need a second draft.
+
+> **What is the best free AI script generator for YouTube in 2026?** It depends on how much editing you are willing to do afterwards. A **free ai script generator** with no sign-up, like Restream, gets you a usable draft in about 40 seconds. A free tier attached to a YouTube-native tool, like vidIQ or Creator AI, gives you structure and channel context but wants an account first. The real difference is not output quality on the first draft, it is how much of your voice survives into the second one.
+
+![Free AI script generator output shown in the Creator AI script editor](/scripts%20page.png)
+
+Search "free AI script generator" and you get roughly forty landing pages that all say the same three things: instant, unlimited, no credit card. Two of those are usually untrue.
+
+So we ran seven of them against the same brief, a nine-minute talking-head video titled "5 mistakes new freelancers make in their first year", and compared what came back, what it cost in editing, and where each free tier actually stops.
+
+## What "Free" Actually Means Here
+
+Every free tier in this category buys itself a limit somewhere. Knowing which limit you are being sold matters more than the feature list.
+
+- **Generation caps.** Three to five runs a day is common. Fine for testing, painful when a script needs four passes.
+- **Length caps.** Plenty of tools emit 400 to 700 words and call it a script. A nine-minute video needs roughly 1,200 to 1,500 spoken words at a natural 135 words-per-minute delivery.
+- **Model tiering.** The free tier runs the cheaper model. The demo you saw was the paid one.
+- **No memory.** The cheapest thing to remove from a free product is personalisation, which is exactly the thing that makes a script sound like you.
+
+The industry moved in this direction generally: after the major providers tightened free access, [reported free allowances across AI video and script tools fell sharply through 2025 and 2026](https://videoai.me/blog/ai-video-generator-free-daily-limits-comparison-2026). Treat any "unlimited free" claim as a signal to check the terms page.
+
+## The 7 Best Free AI Script Generator Tools, Compared
+
+Free-tier details checked August 2026. These move often, so verify before you plan a workflow around one.
+
+| Tool | Sign-up needed | Free tier reality | Knows your channel | Best for |
+|---|---|---|---|---|
+| Creator AI | Yes | 500 credits/mo, no card | Yes, trained on your videos | Voice-matched drafts you can actually film |
+| vidIQ | Yes | ~150 AI credits/mo | Partly, via channel data | YouTube-shaped structure |
+| Restream | No | Free browser tool | No | The fastest throwaway draft |
+| Copy.ai | Yes | Limited free plan | No | Hooks and short segments |
+| ChatGPT | Yes | Free tier, cheaper model | No | Brainstorming and rewrites |
+| Pictory | Yes | Free trial, watermarked | No | Script plus rough auto-edit |
+| Canva Magic Write | Yes | Small free allowance | No | Scripts alongside thumbnails |
+
+Two patterns fall out of that table. The tools that need no account know nothing about you. The tools that know something about you all need an account and a training step. There is no third option, because personalisation requires storage.
+
+### 1. Creator AI, the Free Tier That Learns First
+
+Disclosure: our product. Judge it on the free tier, not on this paragraph.
+
+Creator AI's Starter plan includes 500 monthly credits with no card. The distinguishing step happens before generation: it analyses three to five of your existing uploads and builds a persistent voice profile covering vocabulary, sentence length, pacing, humour and how you actually open a video. Scripts are then written against that profile and structured for retention, with a hook in the first ten seconds, open loops and pattern interrupts placed where retention graphs show people leave.
+
+**Pros:** the only free option here where draft two sounds more like you than draft one, plus thumbnails and subtitles from the same brief.
+
+**Cons:** the training step is a real first-run delay, and 500 credits is a testing budget, not a production one.
+
+### 2. vidIQ, YouTube Structure on a Free Plan
+
+[vidIQ's AI script writer](https://vidiq.com/ai-script-generator/) is trained on YouTube patterns rather than general prose, so it reliably produces hooks, transitions and a CTA in the right places. The free plan runs on a shared monthly AI credit balance, around 150 credits, spent across all its AI tools.
+
+**Pros:** best free structural quality of the general tools; keyword data sits next to the script.
+
+**Cons:** credits get eaten by the other AI features, and the output voice is generic YouTube-presenter by default.
+
+### 3. Restream, No Account, No Friction
+
+[Restream's YouTube script generator](https://restream.io/tools/ai-youtube-script-generator) runs in the browser with no sign-up. Topic, audience, tone, script.
+
+**Pros:** genuinely zero friction; the fastest way to see whether an idea has a shape.
+
+**Cons:** short output, no memory, no retention logic beyond a template. It is a starting block rather than a script.
+
+### 4. Copy.ai, Good at the First Fifteen Seconds
+
+Copy.ai's guided workflow is the easiest onboarding of any free AI script generator, and it is unusually good at hooks and short segments, which is the hardest part to write and the easiest part to test.
+
+**Pros:** strong hook variations; forgiving for beginners.
+
+**Cons:** built for marketing copy, so long-form video scripts drift into ad cadence.
+
+### 5. ChatGPT, the Default Everyone Already Has
+
+The free tier writes clean prose and will happily produce a script-shaped document. It has no channel memory, no retention model and a strong pull toward essay rhythm, which reads fine and performs badly out loud. We tested this at length in [our ChatGPT scripting review](/blog/chatgpt-for-youtube-scripts-review-tested-2026).
+
+**Pros:** unbeatable for brainstorming, rewriting a paragraph, or fixing a clunky transition.
+
+**Cons:** budget 30 to 45 minutes of editing per script to strip the AI cadence.
+
+### 6. Pictory, Script Plus a Rough Cut
+
+Pictory generates a script and then assembles stock footage against it. The free trial watermarks exports.
+
+**Pros:** useful when the video is faceless and the visuals are secondary.
+
+**Cons:** script quality is subordinate to the auto-edit; the watermark makes the free tier a demo.
+
+### 7. Canva Magic Write, Convenient If You Already Live There
+
+A small free allowance, ordinary script quality, and the practical advantage that your thumbnail is one tab away.
+
+**Pros:** one workspace for script and packaging.
+
+**Cons:** no YouTube-specific structure at all.
+
+## What Every Free AI Script Generator Gets Wrong
+
+Across all seven, the same three failures showed up in the raw output.
+
+**It writes to be read, not spoken.** Sentences run long, clauses nest, and there are no breath points. Read any of these drafts aloud and you will trip inside thirty seconds. Spoken scripts want short sentences and deliberate fragments.
+
+**The hook is a summary.** Almost every tool opened with a version of "In today's video, we'll cover five mistakes." That is a table of contents, not a hook. A hook creates a gap the viewer needs closed, and the fix is covered in [how to write YouTube scripts that hold attention](/blog/youtube-scripts-that-keep-viewers-watching).
+
+**The voice is the tool's, not yours.** This is the one that compounds. Every script you publish in a borrowed voice trains your audience to expect a presenter who is not you, and it is why we wrote [how to make AI scripts sound human](/blog/how-to-make-ai-scripts-sound-more-human-youtube).
+
+## How to Test a Free AI Script Generator in 20 Minutes
+
+Do not evaluate these on a demo topic. Use a video you have already published and know the retention curve of.
+
+1. **Feed it a real brief.** Your actual title, actual audience, actual length.
+2. **Read the first 15 seconds out loud.** If you would not say it, the hook has failed and everything after it is decoration.
+3. **Count the words.** Under 1,000 for a nine-minute video means you are writing the rest yourself.
+4. **Generate a second draft with one change.** Does it remember anything from the first? Most do not.
+5. **Time your edit.** The honest cost of a free AI script generator is the number of minutes between the draft and something you would film.
+
+That last number is what separates the seven. On our brief the fastest useful edit was under ten minutes and the slowest was over forty, and the difference tracked almost exactly with whether the tool had ever seen the channel.
+
+![Comparing free AI script generator drafts against a voice-matched script](/story%20page.png)
+
+## When to Stop Using the Free Tier
+
+Free is the right answer while you are still deciding what your channel is. It stops being the right answer at roughly one upload a week, when the arithmetic flips: caps force you to ration drafts, and editing time per script starts exceeding the cost of a paid plan in hours you could have spent filming.
+
+[YouTube's own creator guidance](https://www.youtube.com/creators/) keeps pointing at the same thing, and the platform's move toward viewer satisfaction as a ranking input sharpens it: what gets recommended is a video that delivers on its promise. No free AI script generator does that for you. What the good ones do is get you to a draft fast enough that the remaining hours go into the parts that actually earn the view.
+
+## Keep Reading
+
+- [Best AI Script Writer for YouTube in 2026 (7 Tools Compared)](/blog/best-ai-script-writer-for-youtube-2026-compared)
+- [How to Make AI Scripts Sound More Human on YouTube](/blog/how-to-make-ai-scripts-sound-more-human-youtube)
+- [How to Write YouTube Scripts That Get More Views](/blog/youtube-scripts-that-keep-viewers-watching)
+- Generate a voice-matched draft on the free tier, [start free](/signup) or [compare plans](/pricing).
+- References: [vidIQ AI script generator](https://vidiq.com/ai-script-generator/), [Restream script tools](https://restream.io/tools/ai-youtube-script-generator), [YouTube for Creators](https://www.youtube.com/creators/).
+
+### FAQ
+
+**What is the best free AI script generator in 2026?**
+For a fast throwaway draft with no account, Restream is the least friction. For YouTube-shaped structure on a free tier, vidIQ is the strongest general option. For a free draft that sounds like your channel rather than like a chatbot, Creator AI's Starter plan is the only one on this list that trains on your own videos before it writes.
+
+**Are free AI script generators actually free?**
+Mostly yes, with three common catches: a daily or monthly generation cap, a shorter maximum output length, and the best model reserved for paid tiers. Nothing on this list charges you by surprise, but a free tier that gives you three generations a day is a trial with better marketing.
+
+**Can a free AI script generator write a full 10-minute video script?**
+Some can, most produce an outline plus a partial script and stop. A genuine 10-minute talking-head script is roughly 1,300 to 1,600 spoken words, which is longer than most free tiers will emit in one pass. The usual workaround is generating section by section, which costs you continuity and consistency of voice.
+
+**Do free AI script generators require sign-up?**
+Restream's script tools run in the browser without an account. vidIQ, Copy.ai, Creator AI and the rest require a free account, and the ones that personalise output need one by definition, because there is nowhere else to store what they learned about your channel.
+
+**Is ChatGPT a good free AI script generator for YouTube?**
+It is a good free writer and a mediocre free script generator. It has no model of your channel, no retention structure unless you supply it in the prompt, and it forgets everything between sessions. Expect 30 to 45 minutes of editing per script to remove the essay cadence and add hooks.
+
+**What should I look for in a free AI script generator?**
+Four things: spoken-word pacing rather than blog prose, a real hook in the first three lines, output long enough to film without stitching, and some memory of your channel between sessions. Tools that fail the last two turn a free draft into a paid amount of editing time.
+
+**Will Google or YouTube penalise AI-written scripts?**
+No. YouTube's policies target deceptive or spammy mass-produced content, not the tool used to write a script. What gets punished is content that does not deliver on its promise, since viewer satisfaction feeds the recommendation system, and that is a quality problem rather than an authorship one.
+
+**When is it worth paying instead of using a free tier?**
+When you upload weekly. At one video a week, free-tier caps and per-script editing time start costing you more hours than a paid plan costs money. The switch usually happens the month a creator realises they spend longer rewriting the AI draft than they would spend writing from scratch.
+
+
+---
+
+## YouTube Shorts Script Generator: 5 Hooks That Stop the Scroll
+
+- URL: https://tryscriptai.com/blog/youtube-shorts-script-generator-hooks-that-stop-the-scroll-2026
+- Category: Script Writing
+- Focus keyword: youtube shorts script generator
+- Summary: Short-form scripts fail in the first 1.5 seconds, not the last ten. Here is the beat structure Shorts actually reward, the five hook patterns that survive a swipe test, and what to demand from any tool that writes them for you.
+
+> **What should a YouTube Shorts script generator actually produce?** A timed beat sheet, not an outline. A useful **youtube shorts script generator** writes a pattern-interrupt hook for the first 1.5 seconds, two or three retention beats, a payoff and a single small CTA, totalling roughly 45 to 110 spoken words for a 20 to 45 second runtime. Anything that hands you a paragraph of prose has written a blog post in a vertical aspect ratio.
+
+![YouTube Shorts script generator output with timed hook and retention beats in Creator AI](/scripts%20page.png)
+
+Most short-form scripts do not fail at the idea. They fail in the first second and a half, before the idea has been stated.
+
+That is the whole game, and it is why a long-form script trimmed to thirty seconds almost never works. A long-form viewer clicked; they have already agreed to give you a minute. A Shorts viewer agreed to nothing and is holding a scroll gesture.
+
+## Why Shorts Scripts Are a Different Job
+
+Three structural differences change everything about how the script is written.
+
+**The audience has not opted in.** In long-form, the thumbnail and title did the persuading and the script picks up afterwards. In the Shorts feed the script *is* the thumbnail. Your first line has to do the job the packaging normally does.
+
+**The dominant metric is the swipe.** Completion rate and swipe-away rate drive distribution in the feed. That means the cost of a slow opening is not a slightly lower average view duration, it is that the video stops being shown.
+
+**Retention behaves differently.** Shorts see high average retention overall, partly because the format is short and partly because the people who stay past the hook usually stay to the end. The consequence is blunt: nearly all of your losses happen in the first three seconds, so that is where the writing effort belongs.
+
+Any **youtube shorts script generator** that ignores those three facts is producing a long-form outline with fewer words in it.
+
+## The 5-Beat Shorts Script Structure
+
+This is the shape the good tools output and the shape to demand from the ones that do not.
+
+| Beat | Timing | Job | Words |
+|---|---|---|---|
+| Hook | 0.0 – 1.5s | Pattern interrupt, open loop or bold claim | 5 – 10 |
+| Setup | 1.5 – 5s | Why this matters, stated once | 10 – 15 |
+| Beats | 5 – 25s | Two or three concrete points, no padding | 25 – 60 |
+| Payoff | 25 – 35s | Close the loop you opened | 10 – 20 |
+| CTA | Final 2s | One instruction, small | 3 – 6 |
+
+Two rules govern the whole table. The loop opened in the hook must close in the payoff, or the viewer feels cheated and the next Short from you starts at a deficit. And the setup is where amateur scripts bloat, because explaining context feels responsible; in short-form it is the most common reason people leave.
+
+## 5 Hooks That Survive the Swipe Test
+
+Every hook worth writing does one of five things. These are the patterns worth feeding into a script tool as a constraint, rather than hoping it invents one.
+
+**1. The contradiction.** "Everything you've been told about morning routines is backwards." Sets up a gap between belief and claim, and the viewer stays to see which one loses.
+
+**2. The mid-action open.** Start already doing the thing. No greeting, no "in this video". The absence of context is itself the hook, because the brain wants the missing frame.
+
+**3. The stakes number.** "This one setting cost me 40,000 views." Specific figures outperform vague ones consistently, and a number in the first line is the cheapest credibility available.
+
+**4. The direct question with a wrong default.** "Do you know why your Shorts stop at 200 views?" It works because most viewers have a guess and want it confirmed or destroyed.
+
+**5. The visible payoff promise.** Show the finished result first, then explain it. Common in cooking, design and build content for the obvious reason that the proof arrives before the argument.
+
+Notice what none of them do: introduce the creator, name the topic in a neutral way, or say "today". A **youtube shorts script generator** that opens with "In this Short, we'll look at…" has written beat two and skipped beat one entirely.
+
+## What to Demand From a YouTube Shorts Script Generator
+
+Judge tools in this category on four things, in this order.
+
+1. **Timed output, not prose.** Beats with seconds attached. If you have to guess where 1.5 seconds falls in a paragraph, the tool has moved its job onto you.
+2. **Word count discipline.** A generator that returns 250 words for a 30-second Short does not know the format. Delivery runs at roughly 140 to 150 words per minute.
+3. **Hook variants.** One hook is a guess. Five hooks against the same body is a test, and hook testing is the single highest-leverage thing in short-form.
+4. **Your voice, not a presenter voice.** Short-form amplifies stiffness because there is no room for a viewer to acclimatise. Tools that train on your existing videos start ahead here, which is the same argument we made in [how AI learns your channel voice](/blog/how-creator-ai-learns-your-youtube-channel-voice).
+
+## The Tools, Briefly
+
+**Creator AI.** Disclosure: ours. It writes Shorts scripts against the voice profile built from your uploads, returns hook variations, and carries the same idea into thumbnails and subtitles. Free tier is 500 credits monthly, no card. Weakest point: the channel-training step means the first script is not instant.
+
+**vidIQ.** Solid YouTube-native structure on a free credit allowance, and its keyword data is genuinely useful for Shorts topics that also serve search. Voice is generic by default.
+
+**Restream.** Free, no account, fast. Good for generating twenty hooks to choose from; not a finished script.
+
+**Fliki and similar faceless-Shorts tools.** These write the script and assemble the video. Convenient when you are not on camera, but script quality is subordinate to the auto-edit, and the output voice is nobody's.
+
+**ChatGPT.** Will write a Short if you specify the beat structure and word count in the prompt yourself. Without that, it defaults to essay rhythm. Useful for rewriting a hook you already like.
+
+![Testing hook variations from a YouTube Shorts script generator against retention](/story%20page.png)
+
+## Where Shorts Fit in the Actual Business
+
+Worth saying plainly, because it changes how much time this deserves. Reported Shorts RPM in 2026 commonly sits in the low single-digit cents per thousand views, against several dollars for long-form; [vidIQ's monetization breakdown](https://vidiq.com/blog/post/youtube-shorts-monetization/) puts the gap in that range. Shorts are a discovery channel, not a revenue line.
+
+That is an argument for writing them fast, not for writing them badly. The correct allocation is most of your script effort on the first three seconds, minimal effort on everything else, and no effort at all on the elaborate CTA.
+
+## The Test That Settles It
+
+Record the first three seconds only. Watch it back on your phone, in the feed, with the sound where you would normally have it.
+
+If you would not stop, no tool downstream fixes that. If you would, the rest of the script is comparatively easy, and that is precisely the part a **youtube shorts script generator** is good at handling for you. The generator's job is to make hook testing cheap enough that you actually do it, then to fill in the beats fast so the twenty minutes you have goes into filming rather than typing.
+
+Pair this with [story structure for retention](/blog/youtube-video-story-structure-for-retention-2026) if you also publish long-form, since the same open-loop discipline runs both formats at very different speeds.
+
+## Keep Reading
+
+- [How to Write YouTube Scripts That Get More Views](/blog/youtube-scripts-that-keep-viewers-watching)
+- [7 Best Free AI Script Generator Tools for YouTube (2026)](/blog/best-free-ai-script-generator-tools-for-youtube-videos-2026)
+- [How to Improve YouTube Audience Retention and Watch Time](/blog/improve-youtube-audience-retention-watch-time)
+- Generate hook variations against your own channel voice, [start free](/signup) or [compare plans](/pricing).
+- References: [YouTube for Creators](https://www.youtube.com/creators/), [YouTube Shorts monetization](https://support.google.com/youtube/answer/12504220), [vidIQ on Shorts RPM](https://vidiq.com/blog/post/youtube-shorts-monetization/).
+
+### FAQ
+
+**What is a YouTube Shorts script generator?**
+It is a tool that writes vertical short-form scripts against the Shorts feed rather than against a general video template. The useful ones produce a timed structure, a pattern-interrupt hook in the first 1.5 seconds, two or three retention beats and a payoff, sized for a 20 to 45 second runtime instead of a long-form outline compressed down.
+
+**How long should a YouTube Shorts script be?**
+Around 45 to 110 spoken words. The best-performing Shorts sit in the 20 to 45 second range, and at a natural 140 to 150 words per minute that is roughly 50 to 110 words. Anything longer either gets rushed in delivery or loses people before the payoff.
+
+**How important is the first line of a Shorts script?**
+It decides the video. Viewers commit or swipe within the first three seconds, and swipe-away rate is one of the dominant distribution signals in the Shorts feed. A script whose first line is a preamble has already lost most of its audience before the content starts.
+
+**Can I reuse a long-form script for a Short?**
+Only as source material, never as a draft. Long-form scripts front-load context because the viewer already chose to click; Shorts viewers have not chosen anything yet, so the payoff has to be visible immediately. Take one idea from the long-form script and rebuild it in the Shorts beat structure.
+
+**Is there a free YouTube Shorts script generator?**
+Yes. Restream's tools run free in the browser without an account, vidIQ includes script generation on its free credit allowance, and Creator AI's Starter plan gives 500 monthly credits with no card. Free tiers differ mainly in whether the tool knows anything about your channel before it writes.
+
+**Do Shorts scripts need a call to action?**
+One, at the end, and it should be small. A Short that spends three of its thirty seconds asking for a subscribe is spending ten percent of its runtime on the least interesting part. The payoff itself does most of the persuasion; the CTA just names the next step.
+
+**How much do YouTube Shorts actually pay?**
+Far less per view than long-form. Reported 2026 Shorts RPM commonly lands in the 0.03 to 0.10 USD range per thousand views after YouTube's share, against several dollars for long-form. Shorts earn their place as a discovery and audience-building channel rather than as a direct revenue line.
+
+**What makes an AI-written Shorts script sound robotic?**
+Two habits: complete, evenly weighted sentences, and an explanatory opening. Spoken short-form runs on fragments, and it starts mid-thought. If a generated script reads smoothly on the page, it will almost certainly sound stiff out loud.
