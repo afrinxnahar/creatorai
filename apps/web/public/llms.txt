@@ -103,6 +103,8 @@ Full text of every article below is available at https://tryscriptai.com/llms-fu
 ### Subtitles
 
 - [How Subtitles Increase YouTube Views and Watch Time](https://tryscriptai.com/blog/how-subtitles-boost-youtube-views-and-watch-time): Subtitles aren't just accessibility, they're a growth lever. Here's the data on why captions boost views, watch time, and global reach.
+- [7 Best AI Subtitle Generator Tools for YouTube, Tested](https://tryscriptai.com/blog/best-ai-subtitle-generator-for-youtube-videos-tested-2026): Most subtitle tools transcribe audio and stop there. We compared seven on accuracy, real cost per video, translation, and what happens when your audio isn't studio-clean.
+- [YouTube Auto Captions Are Wrong Where It Costs You Most](https://tryscriptai.com/blog/youtube-auto-captions-accuracy-how-to-fix-caption-errors-2026): Auto-captions hit 85–95% accuracy — and fail hardest on the exact words you want indexed. Here's a 10-minute audit that finds the errors and a workflow that stops them recurring.
 
 ### AI & Creators
 
