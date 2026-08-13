@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   ForbiddenException,
   InternalServerErrorException,
   NotFoundException,
@@ -18,6 +19,8 @@ import {
   getIdeationLimitsForPlan,
 } from '@repo/validation';
 import { BillingService } from '../billing/billing.service';
+import { ConfigService } from '@nestjs/config';
+import { createGoogleAI, GEMINI_TEXT_MODEL } from '../utils/genai';
 import { PDFDocument, PDFPage, PDFImage, rgb, StandardFonts, PDFFont } from 'pdf-lib';
 
 const MAX_NICHE_FOCUS_LENGTH = 200;
@@ -36,14 +39,70 @@ const COLORS = {
 
 @Injectable()
 export class IdeationService {
+  private readonly logger = new Logger(IdeationService.name);
+
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly billingService: BillingService,
+    private readonly configService: ConfigService,
     @InjectQueue('ideation') private readonly queue: Queue,
   ) {}
 
   private get supabase() {
     return this.supabaseService.getClient();
+  }
+
+  /**
+   * One niche-focus suggestion for the "Surprise me" button. Free and ungated —
+   * same reasoning as video generation: let people feel the feature before the paywall.
+   */
+  async surpriseNiche(userId: string) {
+    const { data: style } = await this.supabase
+      .from('user_style')
+      .select('tone, visual_style, themes, humor_style, narrative_structure')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const styleLines = style
+      ? [
+          style.tone && `Tone: ${style.tone}`,
+          style.visual_style && `Visual style: ${style.visual_style}`,
+          style.themes && `Themes: ${style.themes}`,
+          style.humor_style && `Humor: ${style.humor_style}`,
+          style.narrative_structure && `Narrative structure: ${style.narrative_structure}`,
+        ]
+          .filter(Boolean)
+          .join('\n')
+      : '';
+
+    const system = [
+      'You suggest a single niche focus for a YouTube creator about to brainstorm video ideas.',
+      'Return ONLY the niche focus — no preamble, no quotes, no markdown, no list.',
+      'Format it like "AI tools for small business owners": a topic plus the audience it serves. Under 12 words.',
+      styleLines
+        ? `Align it with this creator's established style:\n${styleLines}`
+        : 'The creator has no saved style yet, so pick something broadly appealing with proven search demand.',
+    ].join('\n\n');
+
+    try {
+      const ai = await createGoogleAI(this.configService);
+      const result = await ai.models.generateContent({
+        model: GEMINI_TEXT_MODEL,
+        contents: [{ role: 'user', parts: [{ text: 'Give me one fresh niche focus idea.' }] }],
+        config: { systemInstruction: system, temperature: 1.1, maxOutputTokens: 100 } as any,
+      });
+      const nicheFocus = (
+        (result as any)?.candidates?.[0]?.content?.parts?.[0]?.text ?? result?.text ?? ''
+      )
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .slice(0, MAX_NICHE_FOCUS_LENGTH);
+      if (!nicheFocus) throw new Error('empty');
+      return { success: true, nicheFocus };
+    } catch (e) {
+      this.logger.error(`Surprise niche failed for user ${userId}: ${(e as Error).message}`);
+      throw new InternalServerErrorException('Could not suggest a niche right now. Please try again.');
+    }
   }
 
   async createJob(userId: string, input: {

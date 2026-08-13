@@ -7,7 +7,7 @@ export interface IdeationLimits {
   comparisonMetrics: boolean;
 }
 
-const UNLOCKED_LIMITS: IdeationLimits = { maxIdeas: 20, comparisonMetrics: true };
+const UNLOCKED_LIMITS: IdeationLimits = { maxIdeas: 10, comparisonMetrics: true };
 
 export const IDEATION_PLAN_LIMITS: Record<string, IdeationLimits> = {
   Starter: UNLOCKED_LIMITS,
@@ -19,7 +19,7 @@ export const IDEATION_PLAN_LIMITS: Record<string, IdeationLimits> = {
 
 export type IdeationPlanName = keyof typeof IDEATION_PLAN_LIMITS;
 
-export const IDEATION_ABSOLUTE_MAX_IDEAS = 20;
+export const IDEATION_ABSOLUTE_MAX_IDEAS = 10;
 
 export function getIdeationLimitsForPlan(_planName?: string | null): IdeationLimits {
   // Uniform across all plans — no feature gating.

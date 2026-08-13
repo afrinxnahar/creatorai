@@ -12,6 +12,12 @@ import { useSupabase } from "@/components/supabase-provider";
 import { toast } from "sonner";
 import { Separator } from "@repo/ui/separator";
 
+// Route segments whose display name differs from the URL.
+const SEGMENT_TITLES: Record<string, string> = {
+  research: "Ideation",
+  train: "AI Studio",
+};
+
 export default function DashboardHeader() {
   const pathname = usePathname();
   const { user, profile: initialProfile, logout } = useSupabase();
@@ -29,7 +35,9 @@ export default function DashboardHeader() {
     if (path.length === 1) {
       setPageTitle("Dashboard");
     } else {
-      const title = path[1] ? path[1].charAt(0).toUpperCase() + path[1].slice(1) : "";
+      const segment = path[1] ?? "";
+      const title = SEGMENT_TITLES[segment]
+        ?? (segment ? segment.charAt(0).toUpperCase() + segment.slice(1) : "");
       setPageTitle(title);
     }
     // Close the popover when the pathname changes
