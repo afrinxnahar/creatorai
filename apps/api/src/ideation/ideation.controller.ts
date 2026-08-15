@@ -32,6 +32,14 @@ export class IdeationController {
     return this.ideationService.createJob(getUserId(req), body);
   }
 
+  @Post('surprise')
+  @UseGuards(SupabaseAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Suggest a niche focus from the creator\'s trained style' })
+  async surprise(@Req() req: AuthRequest) {
+    return this.ideationService.surpriseNiche(getUserId(req));
+  }
+
   @Get()
   @UseGuards(SupabaseAuthGuard)
   @ApiBearerAuth()

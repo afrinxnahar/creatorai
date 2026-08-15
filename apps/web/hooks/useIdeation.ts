@@ -41,6 +41,7 @@ export function useIdeation() {
   const [autoMode, setAutoMode] = useState(false);
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSurprising, setIsSurprising] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [activeJobDbId, setActiveJobDbId] = useState<string | null>(null);
 
@@ -115,6 +116,24 @@ export function useIdeation() {
     },
   });
 
+  const surpriseNiche = async () => {
+    setIsSurprising(true);
+    try {
+      const res = await api.post<{ success: boolean; nicheFocus: string }>(
+        "/api/v1/ideation/surprise",
+        {},
+        { requireAuth: true },
+      );
+      if (res.nicheFocus) setNicheFocus(res.nicheFocus);
+    } catch (error) {
+      toast.error("Couldn't dream one up", {
+        description: getApiErrorMessage(error, "Please try again."),
+      });
+    } finally {
+      setIsSurprising(false);
+    }
+  };
+
   const handleGenerate = async (countOverride?: number) => {
     const effectiveCount = countOverride ?? ideaCount;
     setIsGenerating(true);
@@ -169,13 +188,14 @@ export function useIdeation() {
     nicheFocus, setNicheFocus,
     ideaCount, setIdeaCount,
     autoMode, setAutoMode,
-    isGenerating,
+    isGenerating, isSurprising,
     progress: sse.progress,
     statusMessage: sse.statusMessage,
     generatedResult,
     activeJobDbId,
     jobs, isLoadingJobs,
     aiTrained, credits, isLoadingProfile,
+    surpriseNiche,
     handleGenerate,
     handleDeleteJob,
     clearForm,
