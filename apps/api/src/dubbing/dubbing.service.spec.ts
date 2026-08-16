@@ -155,6 +155,15 @@ describe('DubbingService', () => {
       await expect(service.createDub(input, USER)).rejects.toThrow(ForbiddenException);
     });
 
+    // Regression: the old precheck only asked for one second's worth, so a user who
+    // could not cover the whole dub still got enqueued and only failed after
+    // ElevenLabs had run — at which point we'd already paid for it.
+    it('rejects when credits cover the floor but not the full duration', async () => {
+      await build({ profiles: chain({ data: { credits: 50 }, error: null }) });
+      await expect(service.createDub(input, USER)).rejects.toThrow(/costs 90 credits and you have 50/);
+      expect(queue.add).not.toHaveBeenCalled();
+    });
+
     it('inserts the project and enqueues the worker job', async () => {
       await build();
       const res = await service.createDub(input, USER);

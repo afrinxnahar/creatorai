@@ -16,7 +16,7 @@ import type { CreateDubInput, SignDubUploadInput, DubResponse } from '@repo/vali
 import {
   canDub,
   hasEnoughCredits,
-  getMinimumCreditsForDubbing,
+  calculateDubbingCreditsByDuration,
   isDubDurationAllowed,
   maxDubSecondsForPlan,
   DUBBING_CREDIT_MULTIPLIER,
@@ -114,6 +114,26 @@ export class DubbingService {
     );
   }
 
+  /** Same cost the worker will deduct — checked here so we fail before ElevenLabs runs. */
+  private async assertCanAffordDub(userId: string, durationSeconds: number): Promise<void> {
+    const multiplier = this.getEnvNumber('DUBBING_CREDIT_MULTIPLIER', DUBBING_CREDIT_MULTIPLIER);
+    const required = calculateDubbingCreditsByDuration(durationSeconds, multiplier);
+
+    const { data: profile, error } = await this.supabase
+      .from('profiles')
+      .select('credits')
+      .eq('user_id', userId)
+      .single();
+    if (error || !profile) throw new NotFoundException('Profile not found');
+
+    if (!hasEnoughCredits(profile.credits, required)) {
+      throw new ForbiddenException(
+        `This ${Math.ceil(durationSeconds)}s dub costs ${required} credits and you have ${profile.credits}. ` +
+          'Trim the clip or upgrade your plan.',
+      );
+    }
+  }
+
   private sanitizeFileName(value: string): string {
     return value.replace(/[^\w.\-]/g, '_');
   }
@@ -177,17 +197,10 @@ export class DubbingService {
       throw new PayloadTooLargeException('Uploaded file exceeds the dubbing upload limit.');
     }
 
-    // Precheck the floor before enqueuing — the worker deducts the duration-based cost.
-    const multiplier = this.getEnvNumber('DUBBING_CREDIT_MULTIPLIER', DUBBING_CREDIT_MULTIPLIER);
-    const { data: profile, error: profileError } = await this.supabase
-      .from('profiles')
-      .select('credits')
-      .eq('user_id', userId)
-      .single();
-    if (profileError || !profile) throw new NotFoundException('Profile not found');
-    if (!hasEnoughCredits(profile.credits, getMinimumCreditsForDubbing(multiplier))) {
-      throw new ForbiddenException('Insufficient credits. Please upgrade your plan or earn more credits.');
-    }
+    // Precheck the FULL duration-based cost, not just a one-second floor: the worker
+    // deducts the whole amount after ElevenLabs has already run, so a short balance
+    // discovered there costs us the dub and shows the user a failure they can't act on.
+    await this.assertCanAffordDub(userId, durationSeconds);
 
     const publicUrl = gcsPublicUrl(this.configService, objectName, this.bucket);
     const inputGsUri = gcsUri(this.configService, objectName, this.bucket);
@@ -294,16 +307,7 @@ export class DubbingService {
       throw new BadRequestException('The original media is no longer available. Please create a new dub.');
     }
 
-    const multiplier = this.getEnvNumber('DUBBING_CREDIT_MULTIPLIER', DUBBING_CREDIT_MULTIPLIER);
-    const { data: profile, error: profileError } = await this.supabase
-      .from('profiles')
-      .select('credits')
-      .eq('user_id', userId)
-      .single();
-    if (profileError || !profile) throw new NotFoundException('Profile not found');
-    if (!hasEnoughCredits(profile.credits, getMinimumCreditsForDubbing(multiplier))) {
-      throw new ForbiddenException('Insufficient credits. Please upgrade your plan or earn more credits.');
-    }
+    await this.assertCanAffordDub(userId, Number(row.duration_seconds));
 
     // Reset the row in place so the same detail page reflects the new run.
     await this.supabase
