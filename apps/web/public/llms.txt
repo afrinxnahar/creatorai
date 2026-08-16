@@ -124,3 +124,7 @@ Full text of every article below is available at https://tryscriptai.com/llms-fu
 - [YouTube Auto-Dubbing vs AI Voice Cloning: Why Your Dub Sounds Robotic](https://tryscriptai.com/blog/youtube-auto-dubbing-vs-ai-voice-cloning-explained): YouTube's free auto-dub gets your words into 27 languages, but it uses a stranger's voice, not yours. Here's why that quietly kills retention, and how voice cloning fixes it.
 - [Best AI Dubbing Tool for YouTubers in 2026 (Compared)](https://tryscriptai.com/blog/best-ai-dubbing-tool-for-youtubers-2026-compared): We compared the top AI dubbing tools for creators on price, voice cloning, lip-sync, and languages, from YouTube's free auto-dub to ElevenLabs, HeyGen, Rask, and Creator AI.
 - [How Much Does AI Dubbing Cost in 2026? Real Prices vs Studio Dubbing](https://tryscriptai.com/blog/how-much-does-ai-dubbing-cost-vs-traditional-dubbing-2026): Published per-minute prices for seven AI dubbing tools, what a traditional studio actually quotes, the hidden line items nobody mentions, and the break-even math for a 10-minute video in five languages.
+
+### YouTube Algorithm
+
+- [What the YouTube Algorithm Actually Rewards on a Small Channel](https://tryscriptai.com/blog/youtube-algorithm-for-small-channels-what-it-actually-rewards-2026): YouTube ranks videos, not channels — so why do yours stall? The gate isn't your subscriber count. It's the two signals you fully control, and most advice optimizes only half of one.
