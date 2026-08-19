@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createMetadata, noIndexRobots, siteConfig } from "@/lib/seo";
 import { getBlogBySlug } from "@/lib/blog-data";
+import { authorProfileUrls, getAuthor } from "@/lib/authors";
 import JsonLd from "@/components/JsonLd";
 
 interface Props {
@@ -62,6 +63,23 @@ export default async function BlogPostLayout({
   const url = `${siteConfig.url}/blog/${post.slug}`;
   const publishedAt = toIsoDate(post.date);
 
+  // A named Person with verifiable profiles is the E-E-A-T signal Google leans on
+  // for "best tool" content; an Organization byline gives it nothing to check.
+  // Falls back to the org when a post has no matching author profile.
+  const profile = getAuthor(post.author);
+  const sameAs = profile ? authorProfileUrls(profile) : [];
+  const author = profile
+    ? {
+        "@type": "Person",
+        name: profile.name,
+        jobTitle: profile.title,
+        description: profile.bio,
+        url: `${siteConfig.url}/about-us`,
+        ...(profile.avatar ? { image: `${siteConfig.url}${profile.avatar}` } : {}),
+        ...(sameAs.length ? { sameAs } : {}),
+      }
+    : { "@type": "Organization", name: post.author, url: siteConfig.url };
+
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -73,7 +91,7 @@ export default async function BlogPostLayout({
     articleSection: post.category,
     keywords: post.tags.join(", "),
     wordCount: post.content.trim().split(/\s+/).length,
-    author: { "@type": "Organization", name: post.author, url: siteConfig.url },
+    author,
     publisher: {
       "@type": "Organization",
       name: siteConfig.name,
