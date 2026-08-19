@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createMetadata, noIndexRobots, siteConfig } from "@/lib/seo";
-import { getBlogBySlug } from "@/lib/blog-data";
+import { getPostBySlug } from "@/lib/blog-source";
 import { authorProfileUrls, getAuthor } from "@/lib/authors";
 import JsonLd from "@/components/JsonLd";
 
@@ -17,7 +17,7 @@ function toIsoDate(date: string): string {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const post = getBlogBySlug(id);
+  const post = await getPostBySlug(id);
 
   if (!post) {
     return createMetadata({
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     });
   }
 
-  const publishedTime = toIsoDate(post.date);
+  const publishedTime = post.publishedAt;
 
   return createMetadata({
     title: post.seoTitle,
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: post.seoTitle,
       description: post.seoDescription,
       publishedTime,
-      modifiedTime: publishedTime,
+      modifiedTime: post.updatedAt,
       authors: [post.author],
       section: post.category,
       tags: post.tags,
@@ -56,12 +56,12 @@ export default async function BlogPostLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const post = getBlogBySlug(id);
+  const post = await getPostBySlug(id);
 
   if (!post) return children;
 
   const url = `${siteConfig.url}/blog/${post.slug}`;
-  const publishedAt = toIsoDate(post.date);
+  const publishedAt = post.publishedAt;
 
   // A named Person with verifiable profiles is the E-E-A-T signal Google leans on
   // for "best tool" content; an Organization byline gives it nothing to check.
@@ -87,7 +87,7 @@ export default async function BlogPostLayout({
     description: post.seoDescription,
     image: `${url}/opengraph-image`,
     datePublished: publishedAt,
-    dateModified: publishedAt,
+    dateModified: post.updatedAt,
     articleSection: post.category,
     keywords: post.tags.join(", "),
     wordCount: post.content.trim().split(/\s+/).length,

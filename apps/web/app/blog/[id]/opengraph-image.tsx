@@ -1,5 +1,5 @@
 import { renderOgImage, OG_SIZE, OG_CONTENT_TYPE } from "@/lib/og";
-import { getBlogBySlug } from "@/lib/blog-data";
+import { getPostBySlug } from "@/lib/blog-source";
 
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
@@ -10,7 +10,7 @@ export async function generateImageMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const post = getBlogBySlug(id);
+  const post = await getPostBySlug(id);
 
   return [
     {
@@ -31,7 +31,7 @@ export default async function Image({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const post = getBlogBySlug(id);
+  const post = await getPostBySlug(id);
 
   return renderOgImage({
     title: post?.title ?? "Creator AI Blog",

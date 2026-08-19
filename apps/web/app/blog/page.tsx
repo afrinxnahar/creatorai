@@ -1,15 +1,17 @@
 // Server Component. Imports the full post list (with bodies) but hands the
 // client only the metadata it needs to render cards, search and paginate — so
 // every post's markdown body stays server-side instead of shipping as JS.
-import { blogPosts } from "@/lib/blog-data"
+import { getPublishedPosts } from "@/lib/blog-source"
 import { getAuthor } from "@/lib/authors"
 import { siteConfig } from "@/lib/seo"
 import BlogListing, { type BlogPostMeta } from "@/components/blog/BlogListing"
 import JsonLd from "@/components/JsonLd"
 
+export const revalidate = 3600
+
 // Index-only schema. Lives here rather than in the section layout so post pages
 // don't each inherit a 44-entry Blog entity and a duplicate breadcrumb.
-const blogJsonLd = {
+const buildBlogJsonLd = (blogPosts: Awaited<ReturnType<typeof getPublishedPosts>>) => ({
   "@context": "https://schema.org",
   "@type": "Blog",
   name: `${siteConfig.name} Blog`,
@@ -22,12 +24,12 @@ const blogJsonLd = {
     headline: post.title,
     description: post.excerpt,
     url: `${siteConfig.url}/blog/${post.slug}`,
-    datePublished: new Date(post.date).toISOString(),
+    datePublished: post.publishedAt,
     author: getAuthor(post.author)
       ? { "@type": "Person", name: post.author }
       : { "@type": "Organization", name: post.author },
   })),
-}
+})
 
 const breadcrumbJsonLd = {
   "@context": "https://schema.org",
@@ -38,7 +40,8 @@ const breadcrumbJsonLd = {
   ],
 }
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const blogPosts = await getPublishedPosts()
   const posts: BlogPostMeta[] = blogPosts.map((p) => ({
     slug: p.slug,
     title: p.title,
@@ -53,7 +56,7 @@ export default function BlogPage() {
 
   return (
     <>
-      <JsonLd data={blogJsonLd} />
+      <JsonLd data={buildBlogJsonLd(blogPosts)} />
       <JsonLd data={breadcrumbJsonLd} />
       <BlogListing posts={posts} />
     </>

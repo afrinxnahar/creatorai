@@ -1,53 +1,19 @@
-export interface BlogFaq {
-  question: string;
-  answer: string;
-}
+/**
+ * Frozen snapshot of the 44 posts seeded into public.blog_posts by
+ * packages/supabase/migrations/20260819000100_seed_blog_posts.sql.
+ *
+ * Not the source of truth: the blog reads from the database (lib/blog-source.ts)
+ * and is edited in the admin dashboard, so editing this file changes nothing a
+ * visitor can see. Safe to delete once the migration has run in production.
+ */
+import type { BlogFaq, BlogPost, BlogVideo } from "./blog-types";
 
-export interface BlogVideo {
-  /** YouTube video ID: the 11-char id in the watch/embed URL. */
-  youtubeId: string;
-  /** Video title (VideoObject.name, required by Google). */
-  name: string;
-  /** One-line description of the video (VideoObject.description, required). */
-  description: string;
-  /** ISO 8601 date the video was first published on YouTube (required). */
-  uploadDate: string;
-  /** ISO 8601 duration, e.g. "PT3M20S". Recommended by Google; omit if unknown. */
-  duration?: string;
-}
+export type { BlogFaq, BlogPost, BlogVideo };
 
-export interface BlogPost {
-  slug: string;
-  title: string;
-  excerpt: string;
-  category: string;
-  author: string;
-  date: string;
-  readTime: string;
-  featured: boolean;
-  tags: string[];
-  content: string;
-  /** Keyword-optimized <title> tag (brand suffix added by root template). */
-  seoTitle: string;
-  /** Meta description with primary keyword + CTA, kept under 155 chars. */
-  seoDescription: string;
-  /** The ONE primary phrase this post is optimized to rank for. Must appear in
-   * seoTitle, seoDescription, slug, the first 10% of content, ≥1 subheading, and
-   * 7+ times overall (≥0.9% density). Unique across all posts, never reuse a
-   * focusKeyword. Run `pnpm --filter web seo:audit` to verify. Required on every
-   * post. */
-  focusKeyword: string;
-  /** Primary + long-tail keywords for this post (supporting terms). */
-  keywords: string[];
-  /** Visible FAQ block that also powers FAQPage JSON-LD. */
-  faqs: BlogFaq[];
-  /** Embedded videos on this post. Powers VideoObject JSON-LD so Google
-   * indexes the page as a video "watch page". Order matches the embeds in
-   * `content`. Omit when the post has no video. */
-  videos?: BlogVideo[];
-}
+/** The seed rows carry no publishedAt/updatedAt: the database assigns those. */
+export type SeedBlogPost = Omit<BlogPost, "publishedAt" | "updatedAt">;
 
-export const blogPosts: BlogPost[] = [
+export const blogPosts: SeedBlogPost[] = [
   {
     slug: "creator-ai-vs-chatgpt-for-youtube-creators",
     title: "Creator AI vs ChatGPT: Why Generic AI Falls Short for YouTube",
@@ -8023,11 +7989,3 @@ The argument for building on this stack is narrow and strong: the voice becomes 
     `,
   },
 ];
-
-export function getBlogBySlug(slug: string): BlogPost | undefined {
-  return blogPosts.find((post) => post.slug === slug);
-}
-
-export function getAllSlugs(): string[] {
-  return blogPosts.map((post) => post.slug);
-}
