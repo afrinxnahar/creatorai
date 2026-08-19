@@ -148,31 +148,57 @@ export class AdminController {
     schema: {
       type: 'object',
       required: ['title', 'slug', 'content'],
+      description:
+        'Publishing (status=published) additionally requires excerpt, seo_title, seo_description and focus_keyword; the database rejects the write otherwise. focus_keyword must be unique across non-archived posts.',
       properties: {
         title: { type: 'string' },
-        slug: { type: 'string' },
+        slug: { type: 'string', description: 'lowercase-hyphenated, enforced by a DB constraint' },
         excerpt: { type: 'string' },
-        content: { type: 'string' },
-        cover_image_url: { type: 'string' },
+        content: { type: 'string', description: 'Markdown' },
         category: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
-        status: { type: 'string' },
+        status: { type: 'string', enum: ['draft', 'published', 'archived'] },
         featured: { type: 'boolean' },
+        published_at: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Omit to stamp now on publish. A future value schedules the post.',
+        },
+        author_name: { type: 'string' },
+        read_time: { type: 'string', example: '12 min read' },
+        seo_title: { type: 'string' },
+        seo_description: { type: 'string', maxLength: 155 },
+        focus_keyword: { type: 'string' },
+        keywords: { type: 'array', items: { type: 'string' } },
+        faqs: {
+          type: 'array',
+          description: 'Rendered as the FAQ block and emitted as FAQPage JSON-LD',
+          items: {
+            type: 'object',
+            required: ['question', 'answer'],
+            properties: { question: { type: 'string' }, answer: { type: 'string' } },
+          },
+        },
+        videos: {
+          type: 'array',
+          description: 'Emitted as VideoObject JSON-LD; a video belongs to one post only',
+          items: {
+            type: 'object',
+            required: ['youtubeId', 'name', 'description', 'uploadDate'],
+            properties: {
+              youtubeId: { type: 'string' },
+              name: { type: 'string' },
+              description: { type: 'string' },
+              uploadDate: { type: 'string', format: 'date' },
+              duration: { type: 'string', example: 'PT3M20S' },
+            },
+          },
+        },
       },
     },
   })
   createBlog(
-    @Body() body: {
-      title: string;
-      slug: string;
-      excerpt?: string;
-      content: string;
-      cover_image_url?: string;
-      category?: string;
-      tags?: string[];
-      status?: string;
-      featured?: boolean;
-    },
+    @Body() body: Record<string, unknown>,
     @Req() req: AuthRequest,
   ) {
     const userId = this.getUserId(req);

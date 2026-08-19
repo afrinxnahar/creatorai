@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { BLOG_POST_WRITABLE_FIELDS } from '@repo/validation';
 import { SupabaseService } from '../supabase/supabase.service';
 
 interface FeedEvent {
@@ -438,9 +439,16 @@ export class AdminService {
   // ==================== BLOGS CRUD ====================
 
   async getBlogs(page = 1, limit = 20, status?: string) {
+    // No profiles embed here. blog_posts_author_fkey points at auth.users, not
+    // public.profiles, and PostgREST can only embed across foreign keys between
+    // tables it exposes -- so asking for `profiles!blog_posts_author_fkey`
+    // returned "Could not find a relationship between 'blog_posts' and
+    // 'profiles' in the schema cache" on every single request. The byline the
+    // list actually needs is the blog_posts.author_name column, and the audit
+    // trail of who touched a post lives in `activities`.
     let query = this.db
       .from('blog_posts')
-      .select('*, profiles!blog_posts_author_fkey(full_name, email)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
 
@@ -464,23 +472,29 @@ export class AdminService {
     return data;
   }
 
-  async createBlog(authorId: string, blog: {
-    title: string;
-    slug: string;
-    excerpt?: string;
-    content: string;
-    cover_image_url?: string;
-    category?: string;
-    tags?: string[];
-    status?: string;
-    featured?: boolean;
-  }) {
+  // Whitelist: spreading the request body straight into the write let a caller
+  // set id, author_id, created_at or any future column.
+  private pickBlogFields(body: Record<string, unknown>): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const field of BLOG_POST_WRITABLE_FIELDS) {
+      if (body[field] !== undefined) out[field] = body[field];
+    }
+    return out;
+  }
+
+  async createBlog(authorId: string, blog: Record<string, unknown>) {
+    const fields = this.pickBlogFields(blog);
+
     const { data, error } = await this.db
       .from('blog_posts')
       .insert({
-        ...blog,
+        ...fields,
         author_id: authorId,
-        published_at: blog.status === 'published' ? new Date().toISOString() : null,
+        // An explicit date wins, so a post can be backdated or scheduled on
+        // creation. Otherwise publishing stamps now and a draft stays undated.
+        published_at:
+          fields.published_at ??
+          (fields.status === 'published' ? new Date().toISOString() : null),
       })
       .select()
       .single();
@@ -490,13 +504,22 @@ export class AdminService {
   }
 
   async updateBlog(id: string, updates: Record<string, unknown>) {
-    if (updates.status === 'published') {
-      updates.published_at = new Date().toISOString();
+    const fields = this.pickBlogFields(updates);
+
+    // Publishing needs a date. Keep the one it already has rather than resetting
+    // it, since published_at drives ordering, the sitemap and datePublished.
+    if (fields.status === 'published' && !fields.published_at) {
+      const { data: current } = await this.db
+        .from('blog_posts')
+        .select('published_at')
+        .eq('id', id)
+        .single();
+      fields.published_at = current?.published_at ?? new Date().toISOString();
     }
 
     const { data, error } = await this.db
       .from('blog_posts')
-      .update(updates)
+      .update(fields)
       .eq('id', id)
       .select()
       .single();
