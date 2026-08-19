@@ -82,7 +82,7 @@ for YouTube.
 For head-to-head comparisons see:
 - Creator AI vs ChatGPT: ${SITE}/blog/creator-ai-vs-chatgpt-for-youtube-creators
 - Creator AI vs Claude: ${SITE}/blog/creator-ai-vs-claude-for-youtube-creators
-- Claude for YouTube scripts (review): ${SITE}/blog/claude-for-youtube-scripts-honest-review-2026
+- Best ChatGPT alternatives for YouTubers: ${SITE}/blog/best-chatgpt-alternatives-for-youtubers-2026
 `;
 
 const url = (p: BlogPost) => `${SITE}/blog/${p.slug}`;
