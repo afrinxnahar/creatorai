@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useSupabase } from "@/components/supabase-provider"
 import { DashboardSidebar } from "@/components/dashboard/sidebar/dashboard-sidebar"
 import DashboardHeader from "@/components/dashboard-header"
+import DashboardFooter from "@/components/dashboard/DashboardFooter"
 import HannahChat from "@/components/hannah/HannahChat"
 import { SubscriptionExpiryModal } from "@/components/billing/subscription-expiry-modal"
 
@@ -47,7 +48,13 @@ export default function DashboardShell({
       <DashboardSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} pinned={sidebarPinned} setPinned={setSidebarPinned} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader />
-        <div className="flex-1 overflow-auto">{children}</div>
+        {/* Flex column, not plain flow: pages use h-full, which only resolves
+            against a stretched flex item — otherwise their content spills past
+            the box and the footer lands on top of it. */}
+        <div className="flex-1 overflow-auto flex flex-col">
+          <div className="flex-1">{children}</div>
+          <DashboardFooter />
+        </div>
       </div>
       <HannahChat context="dashboard" />
       <SubscriptionExpiryModal />

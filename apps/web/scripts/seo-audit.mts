@@ -38,6 +38,18 @@ for (const p of blogPosts) {
   const url = `${SITE}/blog/${p.slug}`;
   const hasVideo = !!p.videos?.length;
 
+  // House style: no em dashes, en dashes, or double hyphens anywhere a reader
+  // sees them. Markdown table separator rows (|---|---|) legitimately contain
+  // runs of hyphens, so strip those lines before looking for "--".
+  const prose = [p.title, p.excerpt, p.seoTitle, p.seoDescription, c].join("\n");
+  const proseNoTableRules = prose
+    .split("\n")
+    .filter((l) => !/^\s*\|[\s|:-]+\|\s*$/.test(l))
+    .join("\n");
+  const dashHits = [
+    ...proseNoTableRules.matchAll(/[\u2014\u2013\u2012\u2015\u2212]|--/g),
+  ].map((m) => m[0]);
+
   // Yoast-style: URL and subheadings pass if all focus-keyword WORDS are present
   // (not necessarily as one contiguous phrase). Title/description/first-10% still
   // use the exact phrase since we author those directly.
@@ -60,6 +72,12 @@ for (const p of blogPosts) {
   if (extLinks === 0) gaps.push("no external links");
   if (intLinks === 0) gaps.push("no internal links");
   if (!/\d/.test(p.seoTitle)) gaps.push("no number in title");
+  if (p.seoDescription.length > 155)
+    gaps.push(`meta description ${p.seoDescription.length} chars (>155, Google truncates)`);
+  if (dashHits.length) {
+    const kinds = [...new Set(dashHits)].join(" ");
+    gaps.push(`${dashHits.length} dash(es): use a comma, colon, period or parentheses instead [${kinds}]`);
+  }
 
   totalGaps += gaps.length;
   const status = gaps.length ? `✗ ${gaps.length} gap(s)` : "✓ pass";

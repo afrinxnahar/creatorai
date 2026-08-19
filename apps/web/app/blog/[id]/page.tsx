@@ -13,6 +13,8 @@ import BlogContent from "@/components/blog/BlogContent"
 import ArticleTOC from "@/components/blog/ArticleTOC"
 import SmoothScroll from "@/components/SmoothScroll"
 import { getBlogBySlug, getAllSlugs, blogPosts } from "@/lib/blog-data"
+import { getAuthor } from "@/lib/authors"
+import { AuthorByline, AuthorCard } from "@/components/blog/AuthorByline"
 import { extractHeadings, markdownComponents } from "@/components/blog/markdownComponents"
 
 // Same fade-and-rise the client page used, expressed as CSS (tailwindcss-animate)
@@ -32,6 +34,7 @@ export default async function BlogDetailPage({
   const post = getBlogBySlug(id)
   if (!post) notFound()
 
+  const author = getAuthor(post.author)
   const headings = extractHeadings(post.content)
   if (post.faqs.length > 0) {
     headings.push({ id: "frequently-asked-questions", title: "Frequently Asked Questions", level: 2 })
@@ -80,12 +83,16 @@ export default async function BlogDetailPage({
               </h1>
               <p className="text-lg text-slate-500 mb-8 max-w-2xl">{post.excerpt}</p>
               <div className="flex flex-wrap items-center gap-5 text-sm text-slate-500">
-                <span className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="font-medium text-slate-700">{post.author}</span>
-                </span>
+                {author ? (
+                  <AuthorByline author={author} />
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="font-medium text-slate-700">{post.author}</span>
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5 text-slate-400">
                   <Calendar className="w-4 h-4" />
                   {post.date}
@@ -117,6 +124,8 @@ export default async function BlogDetailPage({
                     <BlogFaqAccordion faqs={post.faqs} />
                   </div>
                 )}
+
+                {author && <AuthorCard author={author} />}
 
                 {/* Tags */}
                 {post.tags.length > 0 && (
