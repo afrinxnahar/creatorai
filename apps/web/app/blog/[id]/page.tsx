@@ -12,7 +12,7 @@ import BlogFaqAccordion from "@/components/blog/BlogFaqAccordion"
 import BlogContent from "@/components/blog/BlogContent"
 import ArticleTOC from "@/components/blog/ArticleTOC"
 import SmoothScroll from "@/components/SmoothScroll"
-import { getBlogBySlug, getAllSlugs, blogPosts } from "@/lib/blog-data"
+import { getPostBySlug, getAllPublishedSlugs, getRelatedPosts } from "@/lib/blog-source"
 import { getAuthor } from "@/lib/authors"
 import { AuthorByline, AuthorCard } from "@/components/blog/AuthorByline"
 import { extractHeadings, markdownComponents } from "@/components/blog/markdownComponents"
@@ -21,8 +21,12 @@ import { extractHeadings, markdownComponents } from "@/components/blog/markdownC
 // so it costs no client JS and starts at first paint.
 const RISE = "animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-700"
 
-export function generateStaticParams() {
-  return getAllSlugs().map((id) => ({ id }))
+// Posts live in the database now, so the set is read at build time and the
+// pages re-render on the interval below when an admin edits one.
+export const revalidate = 3600
+
+export async function generateStaticParams() {
+  return (await getAllPublishedSlugs()).map((id) => ({ id }))
 }
 
 export default async function BlogDetailPage({
@@ -31,7 +35,7 @@ export default async function BlogDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const post = getBlogBySlug(id)
+  const post = await getPostBySlug(id)
   if (!post) notFound()
 
   const author = getAuthor(post.author)
@@ -40,10 +44,7 @@ export default async function BlogDetailPage({
     headings.push({ id: "frequently-asked-questions", title: "Frequently Asked Questions", level: 2 })
   }
 
-  const relatedPosts = blogPosts
-    .filter((p) => p.slug !== post.slug)
-    .filter((p) => p.category === post.category || p.tags.some((t) => post.tags.includes(t)))
-    .slice(0, 3)
+  const relatedPosts = await getRelatedPosts(post)
 
   return (
     <div className="flex flex-col min-h-screen">
