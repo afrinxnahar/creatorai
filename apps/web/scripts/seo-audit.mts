@@ -1,88 +1,40 @@
 /**
- * Blog SEO audit — checks every post in lib/blog-data.ts against the Creator AI
- * SEO checklist (see .claude/skills/blog-post-seo/SKILL.md).
+ * Blog SEO audit — checks every published post in public.blog_posts against the
+ * Creator AI SEO checklist (see .claude/skills/blog-post-seo/SKILL.md).
  *
  * Run:  pnpm --filter web seo:audit
  * Exits non-zero if any post has gaps, so it can gate CI if desired.
  *
- * The "focus keyword" is post.focusKeyword (falls back to keywords[0] for posts
- * not yet backfilled). Every rule below maps to a checklist item.
+ * Reads the database, not a file, because that is where posts are edited now.
+ * It therefore needs the Supabase env vars; in CI that means giving the job the
+ * anon key, which only ever sees published rows.
+ *
+ * The rules themselves live in lib/blog-seo-rules.ts so this script and the
+ * live check in the admin editor can never disagree.
  */
-import { blogPosts } from "../lib/blog-data.ts";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+import { config } from "dotenv";
+import { auditPost } from "../lib/blog-seo-rules.ts";
+import { loadPublishedPosts } from "../lib/blog-source.ts";
 
-const SITE = "https://tryscriptai.com";
+config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../.env") });
+
+const blogPosts = await loadPublishedPosts();
+
 const norm = (s: string) => s.toLowerCase();
-
-function countOcc(haystack: string, needle: string): number {
-  if (!needle) return 0;
-  const re = new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
-  return (haystack.match(re) || []).length;
-}
 
 let totalGaps = 0;
 const lines: string[] = [];
 
 for (const p of blogPosts) {
   const fk = p.focusKeyword ?? p.keywords[0] ?? "";
-  const c = p.content;
-  const words = c.trim().split(/\s+/).length;
-  const first10 = c.slice(0, Math.floor(c.length * 0.1));
-  const subheads = c.match(/^#{2,3}\s+.+$/gm) || [];
-  const imgs = [...c.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)];
-  const fkCount = countOcc(c, fk);
-  const density = words ? ((fkCount * fk.split(/\s+/).length) / words) * 100 : 0;
-  const extLinks = [...c.matchAll(/\]\((https?:\/\/[^)]+)\)/g)].filter(
-    (m) => !/tryscriptai\.com/.test(m[1]!),
-  ).length;
-  const intLinks = [...c.matchAll(/\]\((\/[^)]+)\)/g)].length;
-  const url = `${SITE}/blog/${p.slug}`;
-  const hasVideo = !!p.videos?.length;
-
-  // House style: no em dashes, en dashes, or double hyphens anywhere a reader
-  // sees them. Markdown table separator rows (|---|---|) legitimately contain
-  // runs of hyphens, so strip those lines before looking for "--".
-  const prose = [p.title, p.excerpt, p.seoTitle, p.seoDescription, c].join("\n");
-  const proseNoTableRules = prose
-    .split("\n")
-    .filter((l) => !/^\s*\|[\s|:-]+\|\s*$/.test(l))
-    .join("\n");
-  const dashHits = [
-    ...proseNoTableRules.matchAll(/[\u2014\u2013\u2012\u2015\u2212]|--/g),
-  ].map((m) => m[0]);
-
-  // Yoast-style: URL and subheadings pass if all focus-keyword WORDS are present
-  // (not necessarily as one contiguous phrase). Title/description/first-10% still
-  // use the exact phrase since we author those directly.
-  const fkWords = norm(fk).split(/\s+/).filter(Boolean);
-  const hasAllWords = (text: string) => fkWords.every((w) => norm(text).includes(w));
-
-  const gaps: string[] = [];
-  if (!p.focusKeyword) gaps.push("no focusKeyword field");
-  if (!norm(p.seoTitle).includes(norm(fk))) gaps.push("FK not in title");
-  if (!norm(p.seoDescription).includes(norm(fk))) gaps.push("FK not in description");
-  if (!hasAllWords(p.slug.replace(/-/g, " "))) gaps.push("FK words not in URL");
-  if (!norm(first10).includes(norm(fk))) gaps.push("FK not in first 10%");
-  if (words < 1000) gaps.push(`only ${words} words (<1000)`);
-  if (!subheads.some((h) => hasAllWords(h))) gaps.push("FK words in no subheading");
-  if (!imgs.some((m) => norm(m[1] || "").includes(norm(fk))) && !hasVideo)
-    gaps.push("no image alt with FK (and no video)");
-  if (density < 0.9) gaps.push(`density ${density.toFixed(2)}% (<0.90)`);
-  if (fkCount < 7) gaps.push(`FK appears ${fkCount}x (<7)`);
-  if (url.length < 70) gaps.push(`URL ${url.length} chars (<70)`);
-  if (extLinks === 0) gaps.push("no external links");
-  if (intLinks === 0) gaps.push("no internal links");
-  if (!/\d/.test(p.seoTitle)) gaps.push("no number in title");
-  if (p.seoDescription.length > 155)
-    gaps.push(`meta description ${p.seoDescription.length} chars (>155, Google truncates)`);
-  if (dashHits.length) {
-    const kinds = [...new Set(dashHits)].join(" ");
-    gaps.push(`${dashHits.length} dash(es): use a comma, colon, period or parentheses instead [${kinds}]`);
-  }
+  const { gaps, stats } = auditPost({ ...p, focusKeyword: fk, hasVideo: !!p.videos?.length });
 
   totalGaps += gaps.length;
   const status = gaps.length ? `✗ ${gaps.length} gap(s)` : "✓ pass";
   lines.push(
-    `${status}  ${p.slug}\n    FK="${fk}"  words=${words} density=${density.toFixed(2)}% count=${fkCount} ext=${extLinks} int=${intLinks} urlLen=${url.length}` +
+    `${status}  ${p.slug}\n    FK="${fk}"  words=${stats.words} density=${stats.density.toFixed(2)}% count=${stats.keywordCount} ext=${stats.externalLinks} int=${stats.internalLinks} urlLen=${stats.urlLength}` +
       (gaps.length ? `\n    → ${gaps.join("; ")}` : ""),
   );
 }
