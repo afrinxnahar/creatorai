@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
-import { blogPosts } from "@/lib/blog-data";
+import { getPublishedPosts } from "@/lib/blog-source";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://tryscriptai.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const revalidate = 3600;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: BASE_URL,
@@ -109,15 +111,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => {
-    const published = new Date(post.date);
-    return {
-      url: `${BASE_URL}/blog/${post.slug}`,
-      lastModified: Number.isNaN(published.getTime()) ? new Date() : published,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    };
-  });
+  // lastModified is the last edit, not the publish date: an admin fixing a post
+  // in the dashboard is exactly the signal a sitemap is meant to carry.
+  const blogPages: MetadataRoute.Sitemap = (await getPublishedPosts()).map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
 
   return [...staticPages, ...blogPages];
 }

@@ -15,11 +15,20 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { blogPosts, type BlogPost } from "../lib/blog-data.ts";
+import { config } from "dotenv";
+import { loadPublishedPosts } from "../lib/blog-source.ts";
+import type { BlogPost } from "../lib/blog-types.ts";
 
 const SITE = "https://tryscriptai.com";
 const here = dirname(fileURLToPath(import.meta.url));
 const pub = resolve(here, "../public");
+
+// Posts live in the database now, so this needs the same Supabase env the app
+// uses. Standalone node scripts do not go through next.config, which is what
+// loads the monorepo-root .env for the app.
+config({ path: resolve(here, "../../../.env") });
+
+const blogPosts = await loadPublishedPosts();
 
 // --- Static, human-curated site facts (entity clarity + E-E-A-T for AI) ------
 const HEADER = `# Creator AI (tryscriptai.com)

@@ -103,22 +103,74 @@ export interface AdminFunnel {
   byTier: FunnelTierBreakdown[]
 }
 
+export interface BlogFaq {
+  question: string
+  answer: string
+}
+
+export interface BlogVideo {
+  youtubeId: string
+  name: string
+  description: string
+  /** ISO date the video was published on YouTube. */
+  uploadDate: string
+  /** ISO 8601 duration, e.g. "PT3M20S". */
+  duration?: string
+}
+
 export interface BlogPost {
   id: string
-  author_id: string
+  /** Null for posts seeded before the CMS existed, or when the author's account is deleted. */
+  author_id?: string | null
+  /** Display byline, matched against apps/web/lib/authors.ts. */
+  author_name?: string | null
   title: string
   slug: string
-  excerpt?: string
+  excerpt?: string | null
   content: string
-  cover_image_url?: string
   category: string
   tags: string[]
   status: 'draft' | 'published' | 'archived'
   featured: boolean
-  published_at?: string
+  read_time?: string | null
+  /** Required to publish. */
+  seo_title?: string | null
+  /** Required to publish; 155 chars max, enforced by a DB constraint. */
+  seo_description?: string | null
+  /** Required to publish; unique across non-archived posts. */
+  focus_keyword?: string | null
+  keywords: string[]
+  /** Rendered as the FAQ block and emitted as FAQPage JSON-LD. */
+  faqs: BlogFaq[]
+  /** Emitted as VideoObject JSON-LD. A video belongs to exactly one post. */
+  videos: BlogVideo[]
+  published_at?: string | null
   created_at: string
   updated_at: string
 }
+
+/** Columns an admin may write. Anything else (id, timestamps) is server-owned. */
+export const BLOG_POST_WRITABLE_FIELDS = [
+  'title',
+  'slug',
+  'excerpt',
+  'content',
+  'category',
+  'tags',
+  'status',
+  'featured',
+  'author_name',
+  'read_time',
+  'seo_title',
+  'seo_description',
+  'focus_keyword',
+  'keywords',
+  'faqs',
+  'videos',
+  'published_at',
+] as const
+
+export type BlogPostWritableField = (typeof BLOG_POST_WRITABLE_FIELDS)[number]
 
 export interface AffiliateLink {
   id: string
