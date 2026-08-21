@@ -24,7 +24,14 @@ function getMediaDuration(file: File): Promise<number> {
     el.preload = "metadata";
     el.onloadedmetadata = () => {
       URL.revokeObjectURL(el.src);
-      resolve(el.duration || 0);
+      // Header-less VBR/WebM reports Infinity, which JSON.stringify sends as null and
+      // the API then rejects as a missing duration — catch it here with a message that
+      // says what to do about it.
+      if (!Number.isFinite(el.duration) || el.duration <= 0) {
+        reject(new Error("Could not read this file's length. Try re-exporting it as MP3 or MP4."));
+        return;
+      }
+      resolve(el.duration);
     };
     el.onerror = () => {
       URL.revokeObjectURL(el.src);
@@ -39,6 +46,9 @@ export function useDubbing() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
+  // Measured once, when the file is picked — so the plan cap is enforced before the
+  // user fills in the rest of the form, not after they press Dub.
+  const [mediaDuration, setMediaDuration] = useState<number | null>(null);
   const [isVideo, setIsVideo] = useState(false);
   const [targetLanguage, setTargetLanguage] = useState("");
   const [targetAccent, setTargetAccent] = useState("");
@@ -83,7 +93,7 @@ export function useDubbing() {
   );
 
   // Shared by the file input and the drag-and-drop zone.
-  const handleFileSelect = useCallback((file: File | null | undefined) => {
+  const handleFileSelect = useCallback(async (file: File | null | undefined) => {
     if (!file) return;
 
     if (!/^(audio|video)\//.test(file.type)) {
@@ -95,19 +105,38 @@ export function useDubbing() {
       return;
     }
 
+    let duration: number;
+    try {
+      duration = await getMediaDuration(file);
+    } catch (error) {
+      toast.error("Unreadable file", {
+        description: error instanceof Error ? error.message : "The file may be corrupt.",
+      });
+      return;
+    }
+
+    if (maxDurationSeconds !== null && duration > maxDurationSeconds) {
+      toast.error(`Clip is too long for your plan`, {
+        description: `Your plan dubs clips up to ${maxDurationSeconds}s. This one is ${Math.round(duration)}s — trim it, or upgrade for unlimited length.`,
+      });
+      return;
+    }
+
     setIsVideo(file.type.startsWith("video/"));
     setMediaFile(file);
+    setMediaDuration(duration);
     setDubbedResult(null);
     setProgress({ state: "idle", progress: 0, message: "" });
-  }, []);
+  }, [maxDurationSeconds]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFileSelect(e.target.files?.[0]);
+    void handleFileSelect(e.target.files?.[0]);
     if (fileInputRef.current) fileInputRef.current.value = ""; // allow re-selecting the same file
   }, [handleFileSelect]);
 
   const resetForm = useCallback(() => {
     setMediaFile(null);
+    setMediaDuration(null);
     setTargetLanguage("");
     setTargetAccent("");
     setMediaName("");
@@ -127,8 +156,8 @@ export function useDubbing() {
     let eventSource: EventSource | null = null;
 
     try {
-      const durationSeconds = await getMediaDuration(mediaFile);
-      if (!durationSeconds) throw new Error("Could not determine media duration.");
+      // Measured at file-select; re-read only if that somehow did not stick.
+      const durationSeconds = mediaDuration ?? (await getMediaDuration(mediaFile));
 
       // Fail before the upload rather than after it — the server enforces this too,
       // this just saves the user pushing a file to GCS that will be rejected.
@@ -222,7 +251,7 @@ export function useDubbing() {
       updateProgress("failed", 0, message);
       toast.error("Error dubbing media", { description: message });
     }
-  }, [mediaFile, targetLanguage, targetAccent, isVideo, mediaName, session, updateProgress, maxDurationSeconds]);
+  }, [mediaFile, mediaDuration, targetLanguage, targetAccent, isVideo, mediaName, session, updateProgress, maxDurationSeconds]);
 
   /** Cancel the in-flight dub: queued jobs stop instantly, active ones abort between stages. */
   const cancelDub = useCallback(async () => {
@@ -246,6 +275,7 @@ export function useDubbing() {
   return {
     fileInputRef,
     mediaFile,
+    mediaDuration,
     isVideo,
     targetLanguage,
     setTargetLanguage,

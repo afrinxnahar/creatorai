@@ -10,7 +10,9 @@ export const SignDubUploadSchema = z.object({
   fileSize: z.coerce.number().int().positive(),
   // Real boolean only — z.coerce.boolean() would turn the string "false" into true.
   isVideo: z.boolean(),
-  durationSeconds: z.coerce.number().positive({ message: 'Duration is required' }),
+  // .finite(): a browser that can't read a header reports Infinity for the duration,
+  // which JSON.stringify turns into null — reject it here rather than pricing off it.
+  durationSeconds: z.coerce.number().positive({ message: 'Duration is required' }).finite(),
 });
 
 // Step 2: after the browser uploaded to GCS, create the dubbing job from the
@@ -21,7 +23,7 @@ export const CreateDubSchema = z.object({
   targetAccent: z.string().max(40).optional(),
   isVideo: z.boolean(),
   mediaName: z.string().min(1, { message: 'Media name is required' }).max(100),
-  durationSeconds: z.coerce.number().positive({ message: 'Duration is required' }),
+  durationSeconds: z.coerce.number().positive({ message: 'Duration is required' }).finite(),
 });
 
 // Output/response schema

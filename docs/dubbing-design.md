@@ -269,7 +269,23 @@ gcloud storage buckets add-iam-policy-binding gs://creator-ai-dubbing \
   --member="serviceAccount:<vertex-sa>@creator-ai-498712.iam.gserviceaccount.com" \
   --role=roles/storage.objectAdmin
 
-# 4. CORS so the browser can PUT to the signed URL
+# 4. Expire abandoned uploads. The API signs uploads into `staging/` and MOVES the
+#    object to its permanent path only once the job is accepted, so anything left
+#    under `staging/` is an upload nobody claimed. One day is well clear of the
+#    seconds between the PUT finishing and POST /dubbing.
+#    NOTE: --lifecycle-file REPLACES every rule on the bucket. Check what is there
+#    first and include those rules in the file if any exist.
+gcloud storage buckets describe gs://creator-ai-dubbing --format="default(lifecycle_config)"
+
+cat > lifecycle.json <<'EOF'
+{"lifecycle": {"rule": [
+  {"action": {"type": "Delete"},
+   "condition": {"age": 1, "matchesPrefix": ["staging/"]}}
+]}}
+EOF
+gcloud storage buckets update gs://creator-ai-dubbing --lifecycle-file=lifecycle.json
+
+# 5. CORS so the browser can PUT to the signed URL
 cat > cors.json <<'EOF'
 [{"origin": ["http://localhost:3000"], "method": ["PUT", "GET"],
   "responseHeader": ["Content-Type"], "maxAgeSeconds": 3600}]

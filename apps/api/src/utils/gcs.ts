@@ -123,6 +123,23 @@ export async function gcsObjectMetadata(
   return { size: Number(meta.size ?? 0), contentType: meta.contentType ?? 'application/octet-stream' };
 }
 
+/**
+ * Server-side move within a bucket (copy + delete, the bytes never transit this process).
+ * Used to promote a staged upload into its permanent path once the job is accepted —
+ * anything left in the staging prefix is an abandoned upload and expires on its own via
+ * the bucket lifecycle rule.
+ */
+export async function moveGcsObject(
+  configService: ConfigService,
+  fromObject: string,
+  toObject: string,
+  bucket?: string,
+): Promise<void> {
+  const storage = await getStorage(configService);
+  const b = storage.bucket(bucket ?? getBucketName(configService));
+  await b.file(fromObject).move(b.file(toObject));
+}
+
 export async function deleteGcsObject(configService: ConfigService, objectName: string, bucket?: string): Promise<void> {
   const storage = await getStorage(configService);
   await storage

@@ -59,6 +59,7 @@ interface DubJobData {
   targetAccent?: string | null;
   durationSeconds: number;
   planName?: string | null;   // for the plan duration cap, re-checked against the vendor's own reading
+  reservedCredits: number;    // already deducted at enqueue — this job settles or refunds it
   outputPutUrl: string;       // signed PUT URL — the dubbed file goes straight to GCS
   outputContentType: string;  // must match the URL's signed Content-Type (video/mp4 | audio/mpeg)
   outputPublicUrl: string;    // public GCS URL of the result, recorded once the upload confirms
@@ -90,8 +91,13 @@ export class DubbingProcessor extends WorkerHost {
   async process(job: Job<DubJobData>): Promise<{ dubbedUrl: string }> {
     const {
       userId, projectId, inputUrl, isVideo, targetLanguage, targetAccent,
-      durationSeconds, planName, outputPutUrl, outputContentType, outputPublicUrl,
+      durationSeconds, planName, reservedCredits, outputPutUrl, outputContentType, outputPublicUrl,
     } = job.data;
+
+    // Credits were taken at enqueue. This tracks what the user is currently out of
+    // pocket so every exit path — failure, cancellation, a re-priced dub — settles
+    // against the real number instead of assuming the reservation was right.
+    let chargedCredits = reservedCredits ?? 0;
 
     await job.updateProgress(0);
     await job.log('Starting dubbing...');
@@ -122,6 +128,17 @@ export class DubbingProcessor extends WorkerHost {
         );
       }
 
+      // Re-price against the vendor's reading too, not just the cap. The browser sets
+      // the reservation and a tampered `durationSeconds` would otherwise buy a
+      // 45-minute dub for one second's worth of credits.
+      if (expectedDurationSec) {
+        chargedCredits = await this.settleCredits(userId, chargedCredits, expectedDurationSec, job);
+        await this.updateJob(projectId, { credits_consumed: chargedCredits });
+      } else {
+        // No independent reading available: the browser's number stands as the price.
+        this.logger.warn(`Dub ${projectId}: ElevenLabs returned no duration — priced on the client's ${durationSeconds}s.`);
+      }
+
       await this.throwIfCancelled(job.id!);
       await this.updateJob(projectId, { status: 'cloning' });
       await job.log('Cloning your voice and generating the dub...');
@@ -138,36 +155,28 @@ export class DubbingProcessor extends WorkerHost {
       await job.updateProgress(80);
 
       // The result is now in GCS at the pre-signed location.
-      // Last cancellation window — after this we charge credits and persist.
+      // Last cancellation window — stopping here refunds and discards a finished dub.
       await this.throwIfCancelled(job.id!);
       const dubbedUrl = outputPublicUrl;
       await job.updateProgress(90);
 
-      // 5. Deduct duration-based credits — only after a successful dub.
-      const multiplier = this.getEnvNumber('DUBBING_CREDIT_MULTIPLIER', DUBBING_CREDIT_MULTIPLIER);
-      const creditsConsumed = calculateDubbingCreditsByDuration(durationSeconds, multiplier);
-
-      const { error: creditError } = await this.supabase.rpc('update_user_credits', {
-        user_uuid: userId,
-        credit_change: -creditsConsumed,
-      });
-      if (creditError) {
-        this.logger.error(`Credit deduction failed for user ${userId}: ${creditError.message}`);
-        await this.updateJob(projectId, { status: 'failed', error_message: 'Insufficient credits' });
-        throw new Error('Insufficient credits. Please upgrade your plan.');
-      }
-
+      // 5. Credits were already settled above — nothing can fail between a finished dub
+      //    and the user having it, which is the whole point of reserving at enqueue.
       await this.updateJob(projectId, {
         status: 'completed',
         dubbed_url: dubbedUrl,
-        credits_consumed: creditsConsumed,
+        credits_consumed: chargedCredits,
       });
       await job.updateProgress(100);
-      await job.log(`Done! ${creditsConsumed} credits deducted.`);
+      await job.log(`Done! ${chargedCredits} credits deducted.`);
 
       return { dubbedUrl };
     } catch (error: any) {
       const cancelled = error instanceof DubbingCancelledError;
+      // Nothing was delivered, so nothing is owed — hand the reservation back before
+      // anything else, including before the error is reported.
+      await this.refundCredits(userId, chargedCredits);
+      chargedCredits = 0;
       await job.log(cancelled ? 'Cancelled by user.' : `Fatal error: ${error.message}`);
       if (!cancelled) {
         this.logger.error(`Job ${job.id} failed: ${error.message}`, error.stack);
@@ -181,7 +190,11 @@ export class DubbingProcessor extends WorkerHost {
         });
       }
       try {
-        await this.updateJob(projectId, { status: 'failed', error_message: error.message?.slice(0, 5000) });
+        await this.updateJob(projectId, {
+          status: 'failed',
+          error_message: error.message?.slice(0, 5000),
+          credits_consumed: 0,
+        });
       } catch (updateError: any) {
         this.logger.error(
           `Job ${job.id}: failed to persist failed status for dub ${projectId}: ${updateError?.message}`,
@@ -189,6 +202,56 @@ export class DubbingProcessor extends WorkerHost {
         );
       }
       throw error;
+    }
+  }
+
+  /**
+   * Bring the amount already deducted in line with what the dub actually costs at the
+   * vendor's own duration, and return the new figure.
+   *
+   * Charging more can fail (the user may not hold the difference) — and it must fail the
+   * job rather than deliver, because this runs before the dub is handed over. Refunding
+   * the difference cannot fail in a way worth stopping for.
+   */
+  private async settleCredits(
+    userId: string,
+    charged: number,
+    actualDurationSeconds: number,
+    job: Job<DubJobData>,
+  ): Promise<number> {
+    const multiplier = this.getEnvNumber('DUBBING_CREDIT_MULTIPLIER', DUBBING_CREDIT_MULTIPLIER);
+    const owed = calculateDubbingCreditsByDuration(actualDurationSeconds, multiplier);
+    const delta = owed - charged;
+    if (delta === 0) return owed;
+
+    if (delta > 0) {
+      const { error } = await this.supabase.rpc('update_user_credits', {
+        user_uuid: userId,
+        credit_change: -delta,
+      });
+      if (error) {
+        throw new Error(
+          `This clip is ${Math.round(actualDurationSeconds)}s and costs ${owed} credits — that is more than your balance covers. Top up or trim the clip.`,
+        );
+      }
+      await job.log(`Clip measured ${Math.round(actualDurationSeconds)}s — ${delta} more credits charged.`);
+      return owed;
+    }
+
+    await this.refundCredits(userId, -delta);
+    await job.log(`Clip measured ${Math.round(actualDurationSeconds)}s — ${-delta} credits returned.`);
+    return owed;
+  }
+
+  /** Give credits back. Never throws: a failed refund must not mask the original error. */
+  private async refundCredits(userId: string, credits: number): Promise<void> {
+    if (credits <= 0) return;
+    const { error } = await this.supabase.rpc('update_user_credits', {
+      user_uuid: userId,
+      credit_change: credits,
+    });
+    if (error) {
+      this.logger.error(`Failed to refund ${credits} credits to user ${userId}: ${error.message}`);
     }
   }
 
