@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiBody } from '@nestjs
 import { createReadStream } from 'fs';
 import { SubtitleService } from './subtitle.service';
 import { SupabaseAuthGuard } from '../guards/auth.guard';
+import { OnboardedGuard } from '../guards/onboarded.guard';
 import type { Response } from 'express';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import type { AuthRequest } from '../common/interfaces/auth-request.interface';
@@ -31,6 +32,7 @@ export class SubtitleController {
   constructor(private readonly subtitleService: SubtitleService) { }
 
   @Post()
+  @UseGuards(OnboardedGuard)
   @ApiOperation({ summary: 'Create subtitle record' })
   @ApiBody({
     schema: {
@@ -75,6 +77,7 @@ export class SubtitleController {
   }
 
   @Post('upload/sign')
+  @UseGuards(OnboardedGuard)
   @ApiOperation({ summary: 'Get a signed URL to upload the video directly to storage' })
   @ApiBody({
     schema: {
@@ -99,6 +102,7 @@ export class SubtitleController {
   }
 
   @Post('upload/finalize')
+  @UseGuards(OnboardedGuard)
   @ApiOperation({ summary: 'Create the subtitle job after the direct upload completes' })
   @ApiBody({
     schema: {
@@ -209,6 +213,7 @@ export class SubtitleController {
   }
 
   @Post('burn')
+  @UseGuards(OnboardedGuard)
   @ApiOperation({ summary: 'Burn subtitles into video (returns MP4 stream)' })
   @ApiBody({
     schema: {

@@ -131,14 +131,11 @@ export class IdeationService {
 
     const { data: profile, error: profileError } = await this.supabase
       .from('profiles')
-      .select('credits, ai_trained')
+      .select('credits')
       .eq('user_id', userId)
       .single();
 
     if (profileError || !profile) throw new NotFoundException('Profile not found');
-    if (!profile.ai_trained) {
-      throw new ForbiddenException('AI training is required before generating ideas. Train your AI first.');
-    }
     const ideationMultiplier = this.getEnvNumber(
       'IDEATION_CREDIT_MULTIPLIER',
       IDEATION_CREDIT_MULTIPLIER,

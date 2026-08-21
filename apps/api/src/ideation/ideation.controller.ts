@@ -8,6 +8,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import type { Observable } from 'rxjs';
 import { SupabaseAuthGuard } from '../guards/auth.guard';
+import { OnboardedGuard } from '../guards/onboarded.guard';
 import type { AuthRequest } from '../common/interfaces/auth-request.interface';
 import { getUserId } from '../common/get-user-id';
 import { createJobSSE } from '../common/sse';
@@ -22,7 +23,7 @@ export class IdeationController {
   ) {}
 
   @Post()
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Queue ideation job' })
   async create(
@@ -33,7 +34,7 @@ export class IdeationController {
   }
 
   @Post('surprise')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Suggest a niche focus from the creator\'s trained style' })
   async surprise(@Req() req: AuthRequest) {

@@ -68,18 +68,13 @@ export class SubtitleService {
     try {
       const { data: profileData, error: profileError } = await this.supabaseService.getClient()
         .from('profiles')
-        .select('credits, ai_trained, youtube_connected')
+        .select('credits')
         .eq('user_id', userId)
         .single();
 
       if (profileError || !profileData) {
         await this.logErrorToDB('Profile not found or profile fetch failed', subtitleId);
         throw new NotFoundException('Profile not found');
-      }
-
-      if (!profileData.ai_trained && !profileData.youtube_connected) {
-        await this.logErrorToDB('AI training and YouTube connection are required', subtitleId);
-        throw new ForbiddenException('AI training and YouTube connection are required');
       }
 
       const subtitleMultiplier = this.getEnvNumber(

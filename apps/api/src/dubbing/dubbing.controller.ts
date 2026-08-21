@@ -13,6 +13,7 @@ import {
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { createJobSSE } from '../common/sse';
 import { SupabaseAuthGuard } from '../guards/auth.guard';
+import { OnboardedGuard } from '../guards/onboarded.guard';
 import type { AuthRequest } from '../common/interfaces/auth-request.interface';
 
 @ApiTags('dubbing')
@@ -32,7 +33,7 @@ export class DubbingController {
   }
 
   @Post('sign-upload')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get a signed URL to upload source media to GCS',
@@ -61,7 +62,7 @@ export class DubbingController {
   }
 
   @Post()
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a dubbing job from an uploaded object',
@@ -90,7 +91,7 @@ export class DubbingController {
   }
 
   @Post(':id/regenerate')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Regenerate a dub from its original media',
