@@ -77,10 +77,25 @@ assert.equal(
   }).success,
   false, // duration must be positive
 );
+// A header-less VBR/WebM file makes the browser report Infinity. It is "positive", so
+// only .finite() stops it from being priced and JSON-serialised into a null.
+assert.equal(
+  SignDubUploadSchema.safeParse({
+    filename: 'a.mp3', contentType: 'audio/mpeg', fileSize: 1000, isVideo: false, durationSeconds: Infinity,
+  }).success,
+  false,
+);
+assert.equal(
+  CreateDubSchema.safeParse({
+    objectName: 'staging/user-1/dubbing/123_a.mp3', targetLanguage: 'es', isVideo: false, mediaName: 'x',
+    durationSeconds: Infinity,
+  }).success,
+  false,
+);
 
 // Create schema: objectName-based (no raw client URL); numbers coerce, booleans don't.
 const created = CreateDubSchema.parse({
-  objectName: 'user-1/dubbing/123_a.mp3',
+  objectName: 'staging/user-1/dubbing/123_a.mp3',
   targetLanguage: 'es',
   isVideo: false,
   mediaName: 'My clip',

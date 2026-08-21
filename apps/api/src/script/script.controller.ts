@@ -9,6 +9,7 @@ import { Queue } from 'bullmq';
 import type { Response } from 'express';
 import type { Observable } from 'rxjs';
 import { SupabaseAuthGuard } from '../guards/auth.guard';
+import { OnboardedGuard } from '../guards/onboarded.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { CreateScriptSchema, type CreateScriptInput } from '@repo/validation';
 import { getUserId } from '../common/get-user-id';
@@ -26,7 +27,7 @@ export class ScriptController {
   ) {}
 
   @Post('generate')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Queue script generation (multipart: fields + optional files)' })
   @ApiMultipartForm({

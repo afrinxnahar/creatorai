@@ -13,6 +13,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiBody } from '@nestjs
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { SupabaseAuthGuard } from '../guards/auth.guard';
+import { OnboardedGuard } from '../guards/onboarded.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
   CreateVideoGenerationSchema,
@@ -45,7 +46,7 @@ export class VideoGenerationController {
   }
 
   @Post('surprise')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate an on-brand video prompt from the creator\'s trained style' })
   async surprise(
@@ -56,7 +57,7 @@ export class VideoGenerationController {
   }
 
   @Post('generate')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Queue an Omni Flash video generation (Pro/Business/Scale plans only)' })
   @ApiBody({
@@ -87,7 +88,7 @@ export class VideoGenerationController {
   }
 
   @Post(':id/edit')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Statefully edit a finished video (Omni previous_interaction_id)' })
   @ApiParam({ name: 'id' })

@@ -110,6 +110,7 @@ export default function NewDubbing() {
     isLoading,
     allowed,
     accessLoading,
+    maxDurationSeconds,
     canCancel,
     cancelDub,
     handleFileChange,
@@ -141,7 +142,7 @@ export default function NewDubbing() {
       e.preventDefault();
       setIsDragging(false);
       if (isLoading) return;
-      handleFileSelect(e.dataTransfer.files?.[0]);
+      void handleFileSelect(e.dataTransfer.files?.[0]);
     },
     [handleFileSelect, isLoading],
   );
@@ -300,7 +301,7 @@ export default function NewDubbing() {
                         Dub Your Media
                       </CardTitle>
                       <CardDescription>
-                        Translate your audio or video into one of 21 languages while keeping the original voice characteristics.
+                        Translate your audio or video into one of 29 languages while keeping the original voice characteristics.
                       </CardDescription>
                     </CardHeader>
 
@@ -368,7 +369,9 @@ export default function NewDubbing() {
                           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-400 uppercase tracking-widest font-bold">
                             <span>MP3 · WAV · MP4 · MOV</span>
                             <span className="hidden sm:inline w-1 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
-                            <span>Max 500MB · 45 min</span>
+                            {/* The plan's real cap, not a generic one — a Starter user needs to
+                                know about the 60s limit before picking a file, not after. */}
+                            <span>Max 500MB · {maxDurationSeconds ? `${maxDurationSeconds}s per clip` : "45 min"}</span>
                           </div>
                         </Label>
                         <Input

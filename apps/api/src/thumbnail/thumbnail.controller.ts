@@ -16,6 +16,7 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { SupabaseAuthGuard } from '../guards/auth.guard';
+import { OnboardedGuard } from '../guards/onboarded.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { CreateThumbnailSchema, type CreateThumbnailInput } from '@repo/validation';
 import type { AuthRequest } from '../common/interfaces/auth-request.interface';
@@ -34,7 +35,7 @@ export class ThumbnailController {
   ) { }
 
   @Post('generate')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Queue thumbnail generation (optional reference + face images)' })
   @ApiMultipartForm({

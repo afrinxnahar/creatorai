@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiBody } from '@nestjs
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { SupabaseAuthGuard } from '../guards/auth.guard';
+import { OnboardedGuard } from '../guards/onboarded.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { CreateStoryBuilderSchema, type CreateStoryBuilderInput } from '@repo/validation';
 import type { Observable } from 'rxjs';
@@ -20,7 +21,7 @@ export class StoryBuilderController {
   ) {}
 
   @Post('generate')
-  @UseGuards(SupabaseAuthGuard)
+  @UseGuards(SupabaseAuthGuard, OnboardedGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Queue story-builder job' })
   @ApiBody({
