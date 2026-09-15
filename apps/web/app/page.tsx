@@ -13,6 +13,7 @@ import FeatureSection from "@/components/landingPage/FeatureSection";
 import FAQSection from "@/components/landingPage/FAQSection";
 import WhyCreatorAI from "@/components/landingPage/WhyCreatorAI";
 import ReviewsMarquee from "@/components/landingPage/ReviewsMarquee";
+import FreeToolsSection from "@/components/landingPage/FreeToolsSection";
 import { FlipWords } from "@repo/ui/flip-words";
 import dynamic from 'next/dynamic';
 // import { ShinyButton } from "@/components/magicui/shiny-button";
@@ -40,7 +41,7 @@ const RISE = "animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-
 export default function Home() {
   useSmoothScroll()
 
-  const words =["Scripts", "Thumbnails", "Subtitles", "Ideas", "Story Blueprints"]
+  const words =["Scripts", "Thumbnails", "Subtitles", "Ideas", "Story Blueprints", "Dubs"]
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -119,6 +120,10 @@ export default function Home() {
               <LandingPageSVG />
             </div>
           </div>
+        </section>
+
+        <section id="free-tools" className="py-20 bg-slate-50 dark:bg-slate-900">
+          <FreeToolsSection />
         </section>
 
         <section id="features" className="py-20 bg-white dark:bg-slate-800">
