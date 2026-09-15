@@ -15,14 +15,14 @@ import WhyCreatorAI from "@/components/landingPage/WhyCreatorAI";
 import ReviewsMarquee from "@/components/landingPage/ReviewsMarquee";
 import { FlipWords } from "@repo/ui/flip-words";
 import dynamic from 'next/dynamic';
-import { ShinyButton } from "@/components/magicui/shiny-button";
+// import { ShinyButton } from "@/components/magicui/shiny-button";
 import { useSmoothScroll } from "@/hooks/useSmoothScroll";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@repo/ui/dialog"
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@repo/ui/dialog"
 
 // DYNAMIC IMPORT
 const LandingPageSVG = dynamic(
@@ -90,6 +90,7 @@ export default function Home() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </MButton>
                 </Link>
+                {/* Watch Demo is temporarily hidden, uncomment to bring back
                 <Dialog>
                   <DialogTrigger asChild>
                     <ShinyButton>Watch Demo</ShinyButton>
@@ -103,6 +104,7 @@ export default function Home() {
                     ></iframe>
                   </DialogContent>
                 </Dialog>
+                */}
               </div>
 
               <p className={`${RISE} delay-500 mt-4 text-sm text-slate-600`}>
