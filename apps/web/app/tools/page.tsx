@@ -176,7 +176,7 @@ export default function ToolsPage() {
               ))}
               {EXTRA_FEATURES.map((feature) => (
                 <li key={feature.title}>
-                  <Link href="/features" className="block h-full">
+                  <Link href={feature.href ?? "/features"} className="block h-full">
                     <FeatureCard
                       title={feature.title}
                       icon={

@@ -50,9 +50,8 @@ export const navItem: NavItemType[] = [
     ],
     viewAllLabel: "View all free tools",
   },
+  { name: "How It Works", href: "/how-it-works" },
   { name: "Pricing", href: "/pricing" },
-  { name: "Blog", href: "/blog" },
-  { name: "Contact Us", href: "/contact-us" },
 ]
 
 type FooterSection = Record<string, { name: string; href: string }[]>
@@ -60,6 +59,7 @@ type FooterSection = Record<string, { name: string; href: string }[]>
 export const footerItems: FooterSection = {
   "Product": [
     { name: "Features", href: "/features" },
+    { name: "How It Works", href: "/how-it-works" },
     { name: "Free Tools", href: "/tools" },
     { name: "Pricing", href: "/pricing" },
     { name: "Blog", href: "/blog" },
