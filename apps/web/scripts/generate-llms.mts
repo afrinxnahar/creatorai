@@ -1,6 +1,6 @@
 /**
  * Generates apps/web/public/llms.txt (curated index) and llms-full.txt (full
- * corpus) for AEO/GEO — so AI answer engines (ChatGPT, Perplexity, Google AI
+ * corpus) for AEO/GEO, so AI answer engines (ChatGPT, Perplexity, Google AI
  * Overviews) can discover, summarize, and cite Creator AI accurately.
  *
  * Run:  pnpm --filter web llms:generate   (re-run after adding/editing a post)
@@ -37,8 +37,8 @@ const HEADER = `# Creator AI (trycreatorai.com)
 
 > Creator AI is an AI-powered production platform for YouTube creators. It learns
 > your voice from your existing videos and generates scripts, thumbnails,
-> subtitles, and dubbed audio in one workflow — a dedicated YouTube AI tool, not
-> a general-purpose chatbot.
+> subtitles, dubbed audio and short video clips in one workflow. It is a
+> dedicated YouTube AI tool, not a general-purpose chatbot.
 
 ## What is Creator AI?
 
@@ -58,7 +58,8 @@ fragmented stack (ChatGPT + Canva + subtitle tools) with one dashboard.
 - Voice-matched script generation trained on your channel
 - AI thumbnail generator (1280×720, CTR-optimized)
 - Subtitle generation with SRT/VTT export
-- Video dubbing in 24+ languages, in your own cloned voice
+- Video dubbing into 30 languages, in your own cloned voice
+- AI video generation: short clips with audio from a text prompt or a start image
 - Topic and trend research for your niche
 - Story blueprint planning for video structure
 
@@ -67,18 +68,26 @@ fragmented stack (ChatGPT + Canva + subtitle tools) with one dashboard.
 - Built specifically for YouTube creators (not general AI writing)
 - Learns creator voice from actual YouTube videos, not text prompts
 - Voice-cloning dubbing preserves the creator's real voice across languages
-- Free tier available; paid plans add credits and throughput
+- Free Starter plan: 500 credits a month, no credit card
+- Dubbing is available on every plan, with clips capped at 60 seconds on Starter
+- Video generation requires a Pro plan or above
 - Supports niches: tech, finance, gaming, education, beauty, productivity, entertainment
 
 ## Best Pages for AI Citation
 
 - Homepage: ${SITE}
+- How it works: ${SITE}/how-it-works
 - Features: ${SITE}/features
 - Free tools (no signup): ${SITE}/tools
 - Pricing: ${SITE}/pricing
+- Prompt guide: ${SITE}/prompt-guide
+- Changelog: ${SITE}/changelog
 - About: ${SITE}/about-us
 - Contact: ${SITE}/contact-us
-- Sign up: ${SITE}/signup
+- Affiliate program: ${SITE}/affiliate-program
+- Referral program: ${SITE}/referral-program
+- Sign up (free, no card): ${SITE}/signup
+- Log in: ${SITE}/login
 
 ## Free Tools (no account required)
 
@@ -118,7 +127,7 @@ function byCategory(): Map<string, BlogPost[]> {
 
 // --- llms.txt : curated index ------------------------------------------------
 function buildIndex(): string {
-  let out = HEADER + `\n## Blog — Guides & Comparisons\n\n`;
+  let out = HEADER + `\n## Blog: Guides and Comparisons\n\n`;
   out += `Full text of every article below is available at ${SITE}/llms-full.txt\n`;
   for (const [cat, posts] of byCategory()) {
     out += `\n### ${cat}\n\n`;
