@@ -1,11 +1,14 @@
+import Link from "next/link";
 import * as motion from "motion/react-m";
+import { ArrowRight } from "lucide-react";
 import { TracingBeam } from "@repo/ui/tracing-beam";
+import { STEP_SCENES } from "./HowItWorksScenes";
 
 export default function HowItWorks() {
 
     const chapters = [
         { title: "Connect & Train", description: "Link your YouTube channel and pick a few of your best videos. The AI watches them and learns your unique style, tone, and way of speaking." },
-        { title: "Create Content", description: "Tell the AI what you want, a script, video ideas, thumbnails, or subtitles. It creates everything in your voice, ready to use." },
+        { title: "Create Content", description: "Tell the AI what you want: a script, video ideas, thumbnails, subtitles, a story blueprint, a generated clip, or a dub in another language. It creates everything in your voice, ready to use." },
         { title: "Publish & Grow", description: "Review the output, make any tweaks, and use it for your next video. The more you use it, the better it understands you." },
     ]
 
@@ -55,8 +58,31 @@ export default function HowItWorks() {
                                 {chapter.description}
                             </p>
                         </div>
+
+                        {(() => {
+                            const Scene = STEP_SCENES[index]
+                            return Scene ? (
+                                <Scene className="mt-6 h-auto w-full max-w-[240px] flex-shrink-0 lg:mt-0 lg:w-56" />
+                            ) : null
+                        })()}
                     </motion.div>
                 ))}
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                    className="flex justify-center pt-2"
+                >
+                    <Link
+                        href="/how-it-works"
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-6 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 transition hover:border-purple-300 hover:text-purple-700 dark:hover:text-purple-400"
+                    >
+                        See the whole process in detail
+                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                </motion.div>
             </div>
         </TracingBeam>
     )
