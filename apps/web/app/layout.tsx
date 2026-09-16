@@ -1,6 +1,6 @@
 import type React from "react";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@repo/ui/sonner";
@@ -16,6 +16,13 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   preload: true,
+})
+
+// The auth screens use mono for labels, buttons and data readouts.
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
 })
 
 export const metadata: Metadata = createMetadata({
@@ -76,7 +83,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${jetbrainsMono.variable}`}>
         {/* Client boundary is confined to this one null-rendering component. */}
         <WebVitals />
         <JsonLd data={organizationJsonLd} />

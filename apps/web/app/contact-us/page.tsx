@@ -1,20 +1,12 @@
 "use client"
 
 import type React from "react";
-import * as motion from "motion/react-m";
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { toast } from "sonner";
-import { Button } from "@repo/ui/button";
-import { Input } from "@repo/ui/input";
-import { Label } from "@repo/ui/label";
 import { Textarea } from "@repo/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/card";
-import { AuroraBackground } from "@repo/ui/aurora-background";
-import LandingPageNavbar from "@/components/landingPage/LandingPageNavbar";
-import Footer from "@/components/footer";
-import logo from "@/public/dark-logo.png"
+import AuthLayout from "@/components/auth/AuthLayout";
+import { authKeyframes, AuthField, AuthSubmit } from "@/components/auth/AuthFields";
 
 const formFields = [
   { name: "name", label: "Name", type: "text", placeholder: "Your name" },
@@ -56,100 +48,74 @@ export default function ContactPage() {
       setLoading(false)
     }
   }
-
   return (
-    <div className="flex min-h-[100dvh] flex-col">
-      <LandingPageNavbar />
-      <AuroraBackground>
-        <div className="relative mx-3 my-24 box-border grid w-full max-w-[min(100%,calc(100vw-1.5rem))] flex-1 grid-cols-1 items-start justify-center gap-8 px-3 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] sm:mx-5 sm:px-4 sm:py-8 md:mx-auto md:max-w-7xl md:grid-cols-2 md:items-center md:px-8 md:py-10 lg:px-12">
+    <AuthLayout
+      tag="CONTACT"
+      title="Tell us what you're building"
+      subhead="Questions, feedback or ideas. The team reads every message and replies."
+    >
+      <style>{authKeyframes}</style>
 
-          {/* Left Column: Brand Messaging */}
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.8, ease: "easeInOut" }}
-            className="hidden flex-col justify-center gap-4 md:flex"
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {formFields.map((field) => (
+          <AuthField
+            key={field.name}
+            label={field.label.toUpperCase()}
+            id={field.name}
+            name={field.name}
+            type={field.type}
+            placeholder={field.placeholder}
+            value={formData[field.name as keyof typeof formData]}
+            onChange={handleChange}
+            disabled={loading}
+            required
+          />
+        ))}
+
+        <label className="block">
+          <span
+            className="au-mono mb-2 block font-bold"
+            style={{ fontSize: "10px", letterSpacing: ".18em", color: "rgba(18,21,26,.4)" }}
           >
-            <Link href="/">
-              <Image src={logo} alt="Creator AI" width={80} height={80} className="mb-4" />
-            </Link>
-            <h1 className="text-4xl lg:text-5xl font-bold text-slate-900">
-              We'd Love to Hear From You.
-            </h1>
-            <p className="max-w-md text-lg text-slate-600">
-              Got questions, feedback, or ideas? Our team is always ready to collaborate and support your AI-powered creative journey.
-            </p>
-          </motion.div>
+            MESSAGE
+          </span>
+          <Textarea
+            id="message"
+            name="message"
+            value={formData.message}
+            onChange={handleChange}
+            required
+            rows={4}
+            disabled={loading}
+            placeholder="Write your message here..."
+            className="au-input w-full resize-none bg-transparent px-0 shadow-none outline-none focus-visible:ring-0"
+            style={{
+              border: 0,
+              borderBottom: "1.5px solid rgba(18,21,26,.2)",
+              borderRadius: 0,
+              color: "#12151A",
+              fontSize: "16px",
+              paddingBottom: 10,
+              transition: "border-color .2s",
+            }}
+          />
+        </label>
 
-          {/* Right Column: Contact Form */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
-            className="flex w-full justify-center md:justify-end"
-          >
-            <Card className="w-full max-w-md bg-white/20 dark:bg-black/20 backdrop-blur-lg border border-white/30 shadow-2xl rounded-2xl">
-              <CardHeader className="space-y-1 pt-6">
-                <div className="flex justify-center md:hidden">
-                  <Image src={logo} alt="Creator AI" width={60} height={60} />
-                </div>
-                <CardTitle className="text-2xl text-center text-slate-900 dark:text-white">
-                  Send Us a Message
-                </CardTitle>
-                <p className="text-sm text-center text-slate-600 dark:text-slate-300">
-                  Or email us directly at{" "}
-                  <a href="mailto:support@trycreatorai.com" className="text-purple-600 dark:text-purple-400 hover:underline">
-                    support@trycreatorai.com
-                  </a>
-                </p>
-              </CardHeader>
+        <AuthSubmit loading={loading} loadingLabel="SENDING…">
+          SEND MESSAGE
+        </AuthSubmit>
+      </form>
 
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {formFields.map((field) => (
-                    <div key={field.name} className="space-y-2">
-                      <Label htmlFor={field.name} className="dark:text-slate-200">{field.label}</Label>
-                      <Input
-                        id={field.name}
-                        type={field.type}
-                        name={field.name}
-                        placeholder={field.placeholder}
-                        value={formData[field.name as keyof typeof formData]}
-                        onChange={handleChange}
-                        required
-                        className="bg-white/30 dark:bg-black/30 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus-visible:ring-pink-500"
-                      />
-                    </div>
-                  ))}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="message" className="dark:text-slate-200">Message</Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      value={formData.message}
-                      onChange={handleChange}
-                      required
-                      rows={4}
-                      placeholder="Write your message here..."
-                      className="bg-white/30 dark:bg-black/30 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus-visible:ring-pink-500"
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-slate-900 text-white hover:bg-slate-800 shadow-md"
-                    disabled={loading}
-                  >
-                    {loading ? "Sending..." : "Send Message"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </AuroraBackground>
-      <Footer />
-    </div>
+      <p className="mt-[22px]" style={{ fontSize: "12.5px", lineHeight: 1.6, color: "rgba(18,21,26,.5)" }}>
+        Or email us directly at{" "}
+        <a
+          href="mailto:support@trycreatorai.com"
+          className="font-bold no-underline"
+          style={{ color: "#12151A", borderBottom: "2px solid #a855f7" }}
+        >
+          support@trycreatorai.com
+        </a>
+      </p>
+    </AuthLayout>
   )
 }
