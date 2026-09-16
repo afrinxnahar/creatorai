@@ -13,13 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@repo/ui/tooltip";
 import {
   Loader2, Play, Download, UploadCloud, ArrowLeft, CheckCircle2,
-  Mic, Languages, FileAudio, FileVideo, Sparkles, ArrowUpRight, Type,
-  Clapperboard, Music, RotateCw, Plus, List, Lock,
+  Mic, Languages, FileAudio, FileVideo, ArrowUpRight, Type,
+  Clapperboard, Music, RotateCw, Plus, List, Lock, HelpCircle, Coins,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@repo/ui/sheet";
 import { useDubbing } from "@/hooks/useDubbing";
 import { useAISetupGate } from "@/hooks/useAISetupGate";
-import { supportedLanguages, accentsFor } from "@repo/validation";
+import { supportedLanguages, accentsFor, formatDubDuration, formatUploadLimit } from "@repo/validation";
 import { downloadFile } from "@/lib/download";
 import { GenerationProgress, type GenerationProgressStep } from "@/components/dashboard/common/GenerationProgress";
 import { DubbingHowItWorks } from "@/components/dashboard/dubbing/DubbingHowItWorks";
@@ -34,6 +35,14 @@ const itemVariants = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
 };
+
+/** "2:34" / "1:02:40": the clip length, next to what it will cost. */
+function formatClock(seconds: number): string {
+  const total = Math.round(seconds);
+  const parts = [Math.floor(total / 60) % 60, total % 60];
+  if (total >= 3600) parts.unshift(Math.floor(total / 3600));
+  return parts.map((n, i) => (i === 0 ? String(n) : String(n).padStart(2, "0"))).join(":");
+}
 
 /** Paid-only gate — dark card mirroring VideoUpgradeCard's visual language. */
 function DubbingUpgradeCard() {
@@ -50,8 +59,8 @@ function DubbingUpgradeCard() {
           <h3 className="text-2xl font-bold mb-3">Dub longer clips on a paid plan</h3>
           <p className="text-slate-400 text-sm leading-relaxed mb-8">
             Clone a voice and dub audio or video into 29 languages while keeping the original
-            voice. Dubbing is available on every plan — Starter covers clips up to 60 seconds,
-            and any paid plan removes the length limit entirely.
+            voice. Dubbing is available on every plan. Starter covers 500MB and 45 minutes per
+            clip; a paid plan takes that to 3GB and 3 hours.
           </p>
           <button
             onClick={() => router.push("/pricing")}
@@ -99,6 +108,7 @@ export default function NewDubbing() {
   const {
     fileInputRef,
     mediaFile,
+    mediaDuration,
     isVideo,
     targetLanguage,
     setTargetLanguage,
@@ -112,6 +122,8 @@ export default function NewDubbing() {
     allowed,
     accessLoading,
     maxDurationSeconds,
+    maxUploadBytes,
+    estimatedCredits,
     canCancel,
     cancelDub,
     handleFileChange,
@@ -123,6 +135,7 @@ export default function NewDubbing() {
   const [isDragging, setIsDragging] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
   const gate = useAISetupGate();
 
   // Two independent gates. Setup (channel + training) is checked first because
@@ -224,30 +237,8 @@ export default function NewDubbing() {
           <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* LEFT — animated hero + how it works (stacks on top on mobile) */}
-          <motion.div variants={itemVariants} className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-8 space-y-6">
-            <Card className="overflow-hidden border-purple-100 dark:border-purple-900/40 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/30 dark:to-slate-900">
-              <CardContent className="pt-6 pb-4 text-center">
-                <DubbingVoiceAnimation />
-                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 mt-2">
-                  One voice, every language
-                </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  Clone the speaker and re-voice their content, no re-recording.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="py-2">
-                <DubbingHowItWorks />
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* RIGHT — form / progress / result */}
-          <motion.div variants={itemVariants} className="lg:col-span-7 xl:col-span-8">
+        <div className="mx-auto w-full max-w-3xl">
+          <motion.div variants={itemVariants}>
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div key="progress" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -305,18 +296,30 @@ export default function NewDubbing() {
                 </motion.div>
               ) : (
                 <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <Card className="transition-all duration-300 hover:shadow-[0_8px_30px_rgba(168,85,247,0.10)] hover:border-purple-500/40">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-purple-500" />
-                        Dub Your Media
-                      </CardTitle>
-                      <CardDescription>
-                        Translate your audio or video into one of 29 languages while keeping the original voice characteristics.
-                      </CardDescription>
-                    </CardHeader>
+                  <Card className="overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgba(168,85,247,0.10)] hover:border-purple-500/40">
+                    {/* Hero band, in place of a text header: it is the one thing on the
+                        page that explains what a dub is without being read. */}
+                    <div className="relative border-b border-purple-100 dark:border-purple-900/40 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/30 dark:to-slate-900 px-6 pt-6 pb-5 text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowHowItWorks(true)}
+                        className="absolute right-3 top-3 text-slate-600 hover:text-purple-700 dark:text-slate-400 dark:hover:text-purple-300"
+                      >
+                        <HelpCircle className="h-4 w-4 sm:mr-1.5" />
+                        <span className="hidden sm:inline">How it works</span>
+                      </Button>
 
-                    <CardContent className="space-y-6">
+                      <DubbingVoiceAnimation />
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50 mt-2">
+                        One voice, every language
+                      </h2>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                        Clone the speaker and re-voice their content, no re-recording.
+                      </p>
+                    </div>
+
+                    <CardContent className="space-y-6 pt-6">
                       {/* Media Name */}
                       <div className="space-y-2">
                         <Label htmlFor="media-name" className="flex items-center gap-1.5">
@@ -351,6 +354,21 @@ export default function NewDubbing() {
                               : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 hover:bg-purple-50/60 dark:hover:bg-purple-900/10 hover:border-purple-300"
                             }`}
                         >
+                          {/* What the dub will cost, as soon as the file's length is known.
+                              pointer-events-none so it never swallows a click meant for the
+                              drop zone underneath it. */}
+                          {mediaFile && mediaDuration !== null && (
+                            <div className="pointer-events-none absolute right-3 top-3 text-right">
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-white px-3 py-1 text-xs font-semibold text-purple-700 shadow-sm dark:border-purple-800 dark:bg-slate-900 dark:text-purple-300">
+                                <Coins className="h-3.5 w-3.5" />
+                                {estimatedCredits !== null ? `~${estimatedCredits.toLocaleString()} credits` : "Pricing…"}
+                              </span>
+                              <span className="mt-1 block text-[11px] text-slate-500 dark:text-slate-400">
+                                {formatClock(mediaDuration)} of media
+                              </span>
+                            </div>
+                          )}
+
                           <motion.div
                             whileHover={{ scale: 1.08 }}
                             whileTap={{ scale: 0.94 }}
@@ -380,11 +398,17 @@ export default function NewDubbing() {
                           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-slate-400 uppercase tracking-widest font-bold">
                             <span>MP3 · WAV · MP4 · MOV</span>
                             <span className="hidden sm:inline w-1 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
-                            {/* The plan's real cap, not a generic one — a Starter user needs to
-                                know about the 60s limit before picking a file, not after. */}
-                            <span>Max 500MB · {maxDurationSeconds ? `${maxDurationSeconds}s per clip` : "45 min"}</span>
+                            {/* The plan's real caps, not generic ones: a Starter user needs to
+                                know their limit before picking a file, not after. */}
+                            <span>Max {formatUploadLimit(maxUploadBytes)} · {formatDubDuration(maxDurationSeconds)} per clip</span>
                           </div>
                         </Label>
+                        {estimatedCredits !== null && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            An estimate. The final charge is settled against the length our provider
+                            measures, so a shorter clip refunds the difference.
+                          </p>
+                        )}
                         <Input
                           ref={fileInputRef}
                           id="media-upload"
@@ -469,6 +493,18 @@ export default function NewDubbing() {
           <DubbingUpgradeCard />
         </DialogContent>
       </Dialog>
+
+      <Sheet open={showHowItWorks} onOpenChange={setShowHowItWorks}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader className="mb-6 pr-8">
+            <SheetTitle>How does audio dubbing work?</SheetTitle>
+            <SheetDescription>
+              Four steps from an upload to a finished track in the original voice.
+            </SheetDescription>
+          </SheetHeader>
+          <DubbingHowItWorks />
+        </SheetContent>
+      </Sheet>
 
       {gate.modal}
     </motion.div>

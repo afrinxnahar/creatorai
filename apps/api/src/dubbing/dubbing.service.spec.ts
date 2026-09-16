@@ -80,19 +80,22 @@ describe('DubbingService', () => {
       await expect(service.getAccess(USER)).resolves.toMatchObject({ allowed: true, plan });
     });
 
-    it('allows Starter, but reports the 60s length cap', async () => {
+    it('allows Starter, and reports its 500MB / 45 min caps', async () => {
       await build({ subscriptions: chain(planResult('Starter')) });
       await expect(service.getAccess(USER)).resolves.toMatchObject({
         allowed: true,
-        maxDurationSeconds: 60,
+        maxDurationSeconds: 45 * 60,
+        maxUploadBytes: 500 * 1024 * 1024,
+        creditsPerSecond: 3,
       });
     });
 
-    it('reports no length cap on paid plans', async () => {
+    it('reports the wider vendor ceiling on paid plans', async () => {
       await build({ subscriptions: chain(planResult('Pro')) });
       await expect(service.getAccess(USER)).resolves.toMatchObject({
         allowed: true,
-        maxDurationSeconds: null,
+        maxDurationSeconds: 180 * 60,
+        maxUploadBytes: 3 * 1024 * 1024 * 1024,
       });
     });
 
@@ -105,31 +108,59 @@ describe('DubbingService', () => {
   describe('signUpload', () => {
     const input = { filename: 'a.mp3', contentType: 'audio/mpeg', fileSize: 1000, isVideo: false, durationSeconds: 30 };
 
-    it('accepts a Starter clip within the 60s cap', async () => {
+    it('accepts a Starter clip within the 45 min cap', async () => {
       await build({ subscriptions: chain(planResult('Starter')) });
-      await expect(service.signUpload({ ...input, durationSeconds: 45 }, USER)).resolves.toMatchObject({
+      await expect(service.signUpload({ ...input, durationSeconds: 40 * 60 }, USER)).resolves.toMatchObject({
         success: true,
       });
     });
 
-    it('rejects a Starter clip over the 60s cap', async () => {
+    it('rejects a Starter clip over the 45 min cap', async () => {
       await build({ subscriptions: chain(planResult('Starter')) });
-      await expect(service.signUpload({ ...input, durationSeconds: 90 }, USER)).rejects.toThrow(
+      await expect(service.signUpload({ ...input, durationSeconds: 50 * 60 }, USER)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('lets a paid plan exceed the Starter cap', async () => {
       await build({ subscriptions: chain(planResult('Pro')) });
-      await expect(service.signUpload({ ...input, durationSeconds: 900 }, USER)).resolves.toMatchObject({
+      await expect(service.signUpload({ ...input, durationSeconds: 60 * 60 }, USER)).resolves.toMatchObject({
         success: true,
       });
     });
 
-    it('rejects files over 500MB', async () => {
-      await build();
+    it('still stops a paid plan at the vendor ceiling', async () => {
+      await build({ subscriptions: chain(planResult('Pro')) });
+      await expect(service.signUpload({ ...input, durationSeconds: 181 * 60 }, USER)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects a Starter file over 500MB but accepts it on a paid plan', async () => {
+      const big = { ...input, fileSize: 501 * 1024 * 1024 };
+      await build({ subscriptions: chain(planResult('Starter')) });
+      await expect(service.signUpload(big, USER)).rejects.toThrow(PayloadTooLargeException);
+
+      await build({ subscriptions: chain(planResult('Pro')) });
+      await expect(service.signUpload(big, USER)).resolves.toMatchObject({ success: true });
+    });
+
+    it('rejects files over the paid 3GB ceiling', async () => {
+      await build({ subscriptions: chain(planResult('Pro')) });
       await expect(
-        service.signUpload({ ...input, fileSize: 501 * 1024 * 1024 }, USER),
+        service.signUpload({ ...input, fileSize: 4 * 1024 * 1024 * 1024 }, USER),
+      ).rejects.toThrow(PayloadTooLargeException);
+    });
+
+    // Bengali routes through dubbing_v1, whose endpoint tops out at 1GB / 45 min no
+    // matter what the plan allows. Caught here so the bytes are never uploaded.
+    it('holds a dubbing_v1 language to the smaller route limits', async () => {
+      await build({ subscriptions: chain(planResult('Pro')) });
+      await expect(
+        service.signUpload({ ...input, durationSeconds: 60 * 60, targetLanguage: 'bn' }, USER),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.signUpload({ ...input, fileSize: 2 * 1024 * 1024 * 1024, targetLanguage: 'bn' }, USER),
       ).rejects.toThrow(PayloadTooLargeException);
     });
 
@@ -145,7 +176,9 @@ describe('DubbingService', () => {
     // pushed up to 500MB to GCS and was only then told they could not afford it.
     it('rejects an unaffordable dub before the upload starts', async () => {
       await build({ profiles: chain({ data: { credits: 10 }, error: null }) });
-      await expect(service.signUpload(input, USER)).rejects.toThrow(ForbiddenException);
+      await expect(service.signUpload({ ...input, durationSeconds: 30 * 60 }, USER)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -155,7 +188,8 @@ describe('DubbingService', () => {
       targetLanguage: 'es',
       isVideo: false,
       mediaName: 'My clip',
-      durationSeconds: 30,
+      // 30 min at Creator's 10 credits/min = 300 credits.
+      durationSeconds: 30 * 60,
     };
 
     it("rejects an object outside the user's prefix", async () => {
@@ -175,7 +209,7 @@ describe('DubbingService', () => {
     // ElevenLabs had run — at which point we'd already paid for it.
     it('rejects when credits cover the floor but not the full duration', async () => {
       await build({ profiles: chain({ data: { credits: 50 }, error: null }) });
-      await expect(service.createDub(input, USER)).rejects.toThrow(/costs 90 credits and you have 50/);
+      await expect(service.createDub(input, USER)).rejects.toThrow(/costs 300 credits and you have 50/);
       expect(queue.add).not.toHaveBeenCalled();
     });
 
@@ -202,10 +236,10 @@ describe('DubbingService', () => {
     it('reserves the full cost before enqueueing', async () => {
       await build();
       await service.createDub(input, USER);
-      expect(rpc).toHaveBeenCalledWith('update_user_credits', { user_uuid: USER, credit_change: -90 });
+      expect(rpc).toHaveBeenCalledWith('update_user_credits', { user_uuid: USER, credit_change: -300 });
       expect(queue.add).toHaveBeenCalledWith(
         'dubbing',
-        expect.objectContaining({ reservedCredits: 90 }),
+        expect.objectContaining({ reservedCredits: 300 }),
         expect.anything(),
       );
     });
@@ -213,7 +247,7 @@ describe('DubbingService', () => {
     it('refunds and cleans up when the reservation succeeds but the insert fails', async () => {
       await build({ dubbing_projects: chain({ data: null, error: { message: 'boom' } }) });
       await expect(service.createDub(input, USER)).rejects.toThrow();
-      expect(rpc).toHaveBeenCalledWith('update_user_credits', { user_uuid: USER, credit_change: 90 });
+      expect(rpc).toHaveBeenCalledWith('update_user_credits', { user_uuid: USER, credit_change: 300 });
       expect(deleteGcsObject).toHaveBeenCalledWith(expect.anything(), `${USER}/dubbing/123_a.mp3`, 'dub-bucket');
       expect(queue.add).not.toHaveBeenCalled();
     });
@@ -235,7 +269,7 @@ describe('DubbingService', () => {
       expect(res.jobId).not.toContain(USER);
       expect(queue.add).toHaveBeenCalledWith(
         'dubbing',
-        expect.objectContaining({ userId: USER, targetLanguage: 'es', durationSeconds: 30 }),
+        expect.objectContaining({ userId: USER, targetLanguage: 'es', durationSeconds: 30 * 60 }),
         expect.objectContaining({ jobId: res.jobId }),
       );
     });
@@ -290,7 +324,7 @@ describe('DubbingService', () => {
       target_language: 'es',
       target_accent: null,
       is_video: false,
-      duration_seconds: 30,
+      duration_seconds: 30 * 60,
     };
 
     it.each(['queued', 'processing', 'cloning'])('refuses to regenerate a %s dub', async (status) => {
@@ -302,7 +336,7 @@ describe('DubbingService', () => {
     it('regenerates a completed dub, reserving credits again', async () => {
       await build({ dubbing_projects: chain({ data: { ...row, status: 'completed' }, error: null }) });
       await service.regenerateDub(USER, 'p-1');
-      expect(rpc).toHaveBeenCalledWith('update_user_credits', { user_uuid: USER, credit_change: -90 });
+      expect(rpc).toHaveBeenCalledWith('update_user_credits', { user_uuid: USER, credit_change: -300 });
       expect(queue.add).toHaveBeenCalled();
     });
 

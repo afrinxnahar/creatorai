@@ -66,16 +66,17 @@ export const Navbar = ({ children, className }: NavbarProps) => {
             ref={ref}
             className={cn(
                 "fixed inset-x-0 top-0 z-50 w-full",
-                "border-b border-black/[0.06] dark:border-white/10",
-                "backdrop-blur-[12px] backdrop-saturate-[180%]",
-                "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.9)]",
-                "transition-[background-color,box-shadow] duration-300 ease-out",
+                "transition-[background-color,backdrop-filter] duration-300 ease-out",
+                // Transparent at rest: no background, no border, no shadow, so
+                // the header sits on whatever the page ground is. Once the page
+                // scrolls, content would otherwise run under a fixed bar, so a
+                // backdrop comes back purely for legibility.
                 visible
-                    ? "bg-white/85 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_4px_24px_-8px_rgba(0,0,0,0.08)] dark:bg-neutral-950/85"
-                    : "bg-white/70 dark:bg-neutral-950/70",
+                    ? "border-b border-black/[0.06] bg-white/85 backdrop-blur-[12px] backdrop-saturate-[180%] dark:border-white/10 dark:bg-neutral-950/85"
+                    : "bg-transparent",
                 className,
             )}
-            style={{ WebkitBackdropFilter: "blur(12px) saturate(180%)" }}
+            style={visible ? { WebkitBackdropFilter: "blur(12px) saturate(180%)" } : undefined}
         >
             <div className="relative w-full">
                 {React.Children.map(children, (child) =>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import BrandLogo from "@/components/BrandLogo";
 import * as motion from "motion/react-m";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -23,7 +24,6 @@ import {
 } from "@repo/ui/card";
 import { Loader2, Mail, ArrowLeft } from "lucide-react";
 
-import logo from "@/public/dark-logo.png";
 import { forgotPasswordSchema } from "@repo/validation";
 import { api, ApiClientError } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
       <Card className="w-full max-w-md mx-auto mb-16">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center items-center">
-            {logo && <Image src={logo} alt="Creator AI" width={100} height={100} className="mb-4" />}
+            <BrandLogo size={72} className="mb-4" />
           </div>
           <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
           <CardDescription>

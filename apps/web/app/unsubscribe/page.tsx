@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
+import BrandLogo from "@/components/BrandLogo"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 
@@ -41,7 +42,7 @@ function UnsubscribeInner() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0f0a29] px-4">
       <div className="w-full max-w-md rounded-2xl bg-white/5 border border-white/10 p-8 text-center space-y-5">
-        <Image src="/colored logo.png" alt="Creator AI" width={140} height={40} className="mx-auto h-10 w-auto object-contain" />
+        <BrandLogo size={40} className="mx-auto" />
 
         {state === "invalid" ? (
           <p className="text-slate-300">This unsubscribe link is invalid or incomplete.</p>
