@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react";
+import BrandLogo from "@/components/BrandLogo";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,7 +15,6 @@ import { useMobile } from "@/hooks/use-mobile";
 import { Sidebar, SidebarBody, SidebarLink } from "@repo/ui/sidebar";
 import { Lock, Menu, PanelLeft } from "lucide-react";
 import { useSupabase } from "@/components/supabase-provider";
-import logo from "@/public/dark-logo.png";
 import HomeIcon from "./icons/HomeIcon";
 import SparklesIcon from "./icons/SparklesIcon";
 import SearchIcon from "./icons/SearchIcon";
@@ -55,14 +55,7 @@ export const Logo = ({
       "flex items-center gap-2 font-medium text-black dark:text-white",
     )}
   >
-    <Image
-      src={logo}
-      alt="Creator AI Logo"
-      width={28}
-      height={28}
-      className="shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm"
-      priority={true}
-    />
+    <BrandLogo size={28} className="shrink-0" />
 
     <AnimatePresence mode="wait">
       {showText && (

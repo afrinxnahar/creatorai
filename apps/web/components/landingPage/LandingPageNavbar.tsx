@@ -1,13 +1,13 @@
 "use client"
 
 import React, { useState } from "react";
+import BrandLogo from "@/components/BrandLogo";
 import { AnimatePresence } from "motion/react";
 import * as motion from "motion/react-m";
 import { navItem } from "@repo/ui";
 import type { NavItemType } from "@repo/ui";
 import Image from "next/image";
 import Link from "next/link";
-import logo from "@/public/dark-logo.png";
 import {
   Navbar,
   NavBody,
@@ -40,7 +40,7 @@ const Logo = () => (
     href="/"
     className="flex items-center space-x-2 px-2 py-1 text-sm font-medium text-black dark:text-white"
   >
-    <Image src={logo} alt="Logo" width={30} height={30} />
+    <BrandLogo size={30} />
   </Link>
 )
 
@@ -201,7 +201,7 @@ const LandingPageNavbar = () => {
             href="/"
             className="relative z-20 flex items-center px-2 py-1 text-sm font-normal text-black"
           >
-            <Image src={logo} alt="Logo" width={30} height={30} />
+            <BrandLogo size={30} />
             <span className="font-bold text-xl text-black dark:text-white">Creator AI</span>
           </Link>
           <DesktopNavItems items={navItem} />

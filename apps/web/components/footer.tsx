@@ -1,11 +1,11 @@
 "use client"
 
 import React from 'react';
+import BrandLogo from "@/components/BrandLogo";
 import Image from "next/image";
 import Link from 'next/link';
 import dynamic from "next/dynamic";
 import * as motion from "motion/react-m";
-import logo from "@/public/dark-logo.png";
 import { IconBrandDiscordFilled as Discord, IconBrandLinkedin as Linkedin, IconBrandX as Twitter, IconBrandGithub as Github, IconBrandFacebook as Facebook } from '@tabler/icons-react';
 import { footerItems } from '@repo/ui';
 import { FloatingDock } from "@repo/ui/floating-dock";
@@ -92,7 +92,7 @@ const Footer = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
             >
               <div className="flex items-center gap-3">
-                <Image src={logo} alt="Creator AI Logo" width={40} height={40} />
+                <BrandLogo size={40} />
                 <span className="text-2xl font-bold text-slate-800 dark:text-slate-100">Creator AI</span>
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xs">
