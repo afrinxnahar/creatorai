@@ -19,7 +19,11 @@ import {
   dubbingMultiplierForPlan,
   calculateDubbingCreditsByDuration,
   isDubDurationAllowed,
+  isDubSizeAllowed,
   maxDubSecondsForPlan,
+  maxDubBytesForPlan,
+  formatDubDuration,
+  formatUploadLimit,
   DUBBING_CREDIT_MULTIPLIER,
   DUBBING_CANCEL_PREFIX,
 } from '@repo/validation';
@@ -32,9 +36,6 @@ import {
   deleteGcsObject,
   getDubbingBucketName,
 } from '../utils';
-
-// Dubbing input is usually a short clip, but a video can be large — cap generously.
-const MAX_DUB_UPLOAD_BYTES = 500 * 1024 * 1024; // 500MB
 
 // Uploads land under this prefix and are MOVED to their permanent path only once the
 // job is accepted. A user who signs an upload and walks away leaves the object here,
@@ -101,7 +102,11 @@ export class DubbingService {
     return (subscription?.plans as { name?: string } | null)?.name ?? null;
   }
 
-  /** Lightweight gate check for the UI — form vs. upgrade card, plus the length limit. */
+  /**
+   * Lightweight gate check for the UI: form vs. upgrade card, the upload limits, and
+   * the plan's credits-per-second so the form can price a file the same way this
+   * service will. The rate is resolved here because only the API sees the env override.
+   */
   async getAccess(userId: string) {
     const planName = await this.getActivePlanName(userId);
     return {
@@ -109,6 +114,11 @@ export class DubbingService {
       allowed: canDub(planName),
       plan: planName,
       maxDurationSeconds: maxDubSecondsForPlan(planName),
+      maxUploadBytes: maxDubBytesForPlan(planName),
+      creditsPerSecond: dubbingMultiplierForPlan(
+        planName,
+        this.getEnvNumber('DUBBING_CREDIT_MULTIPLIER', DUBBING_CREDIT_MULTIPLIER),
+      ),
     };
   }
 
@@ -118,12 +128,20 @@ export class DubbingService {
    * cheap first gate, and the worker re-checks against the duration the dubbing vendor
    * reports before it spends anything.
    */
-  private assertDurationAllowed(planName: string | null, durationSeconds: number): void {
-    if (isDubDurationAllowed(planName, durationSeconds)) return;
-    const cap = maxDubSecondsForPlan(planName);
+  private assertDurationAllowed(planName: string | null, durationSeconds: number, targetLanguage?: string): void {
+    if (isDubDurationAllowed(planName, durationSeconds, targetLanguage)) return;
+    const cap = maxDubSecondsForPlan(planName, targetLanguage);
     throw new BadRequestException(
-      `On the ${planName ?? 'Starter'} plan you can dub clips up to ${cap} seconds. ` +
-        `This one is ${Math.round(durationSeconds)}s — trim it, or upgrade for unlimited length.`,
+      `On the ${planName ?? 'Starter'} plan you can dub clips up to ${formatDubDuration(cap)}. ` +
+        `This one is ${formatDubDuration(Math.round(durationSeconds))}. Trim it, or upgrade for a longer limit.`,
+    );
+  }
+
+  /** Same shape as the duration gate: plan cap, tightened by the target language's route. */
+  private assertSizeAllowed(planName: string | null, fileSize: number, targetLanguage?: string): void {
+    if (isDubSizeAllowed(planName, fileSize, targetLanguage)) return;
+    throw new PayloadTooLargeException(
+      `File exceeds the ${formatUploadLimit(maxDubBytesForPlan(planName, targetLanguage))} dubbing upload limit on your plan.`,
     );
   }
 
@@ -213,15 +231,10 @@ export class DubbingService {
     if (!canDub(planName)) {
       throw new ForbiddenException('We could not find an active plan on your account. Please refresh and try again.');
     }
-    this.assertDurationAllowed(planName, input.durationSeconds);
+    this.assertDurationAllowed(planName, input.durationSeconds, input.targetLanguage);
+    this.assertSizeAllowed(planName, input.fileSize, input.targetLanguage);
 
-    if (input.fileSize > MAX_DUB_UPLOAD_BYTES) {
-      throw new PayloadTooLargeException(
-        `File exceeds the ${Math.round(MAX_DUB_UPLOAD_BYTES / 1024 / 1024)}MB dubbing upload limit.`,
-      );
-    }
-
-    // Check the balance BEFORE the browser pushes up to 500MB — being told the dub is
+    // Check the balance BEFORE the browser pushes the file up: being told the dub is
     // unaffordable is much cheaper before the upload than after it.
     await this.assertCanAffordDub(userId, input.durationSeconds, planName);
 
@@ -243,7 +256,7 @@ export class DubbingService {
     if (!canDub(planName)) {
       throw new ForbiddenException('We could not find an active plan on your account. Please refresh and try again.');
     }
-    this.assertDurationAllowed(planName, durationSeconds);
+    this.assertDurationAllowed(planName, durationSeconds, targetLanguage);
 
     // The signed URL was scoped to this user's staging prefix — refuse someone else's object.
     if (!objectName.startsWith(`${STAGING_PREFIX}${userId}/`)) {
@@ -259,12 +272,15 @@ export class DubbingService {
     }
 
     // From here on the staged object is ours to clean up: every failure path below
-    // deletes it, so a rejected dub never leaves 500MB behind.
+    // deletes it, so a rejected dub never leaves a multi-gigabyte object behind.
     const discardUpload = () => deleteGcsObject(this.configService, objectName, this.bucket).catch(() => null);
 
-    if (size > MAX_DUB_UPLOAD_BYTES) {
+    // Re-checked against the object's REAL size: signUpload only saw the browser's claim.
+    try {
+      this.assertSizeAllowed(planName, size, targetLanguage);
+    } catch (error) {
       await discardUpload();
-      throw new PayloadTooLargeException('Uploaded file exceeds the dubbing upload limit.');
+      throw error;
     }
 
     // Precheck the FULL duration-based cost, not just a one-second floor, so the user

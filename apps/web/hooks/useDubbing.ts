@@ -3,14 +3,26 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { DubbedResult, DubbingProgress, supportedLanguages } from "@repo/validation";
+import {
+  DubbedResult,
+  DubbingProgress,
+  supportedLanguages,
+  calculateDubbingCreditsByDuration,
+  formatDubDuration,
+  formatUploadLimit,
+  maxDubBytesForPlan,
+  maxDubSecondsForPlan,
+  STARTER_MAX_DUB_BYTES,
+  STARTER_MAX_DUB_SECONDS,
+} from "@repo/validation";
 import { api, getApiErrorMessage } from "@/lib/api-client";
 import { useSupabase } from "@/components/supabase-provider";
 import { BACKEND_URL } from "@/lib/constants";
 
-const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+const languageLabel = (code: string) =>
+  supportedLanguages.find((l) => l.value === code)?.label ?? code;
 
-// BullMQ SSE state → the UI's DubbingProgress state.
+// BullMQ SSE state -> the UI's DubbingProgress state.
 function mapState(state: string): DubbingProgress["state"] {
   if (state === "completed") return "completed";
   if (state === "failed") return "failed";
@@ -57,8 +69,14 @@ export function useDubbing() {
 
   const [allowed, setAllowed] = useState(false);
   const [accessLoading, setAccessLoading] = useState(true);
-  // null = no limit (paid plans). Starter is capped rather than locked out.
-  const [maxDurationSeconds, setMaxDurationSeconds] = useState<number | null>(null);
+  // The plan's ceilings and its credits-per-second, all resolved by the API so the
+  // form prices and rejects a file exactly the way the server will. Seeded with the
+  // Starter values so the form never advertises a limit wider than the cheapest plan
+  // while /access is still in flight.
+  const [maxDurationSeconds, setMaxDurationSeconds] = useState(STARTER_MAX_DUB_SECONDS);
+  const [maxUploadBytes, setMaxUploadBytes] = useState(STARTER_MAX_DUB_BYTES);
+  const [creditsPerSecond, setCreditsPerSecond] = useState<number | null>(null);
+  const [plan, setPlan] = useState<string | null>(null);
 
   // Mid-run cancellation: the BullMQ job id of the in-flight dub, and whether the
   // user asked to cancel (suppresses the generic failure toast).
@@ -71,15 +89,22 @@ export function useDubbing() {
     message: "",
   });
 
-  // Every plan can dub; Starter is limited on clip length instead.
+  // Every plan can dub; Starter is limited on clip length and size instead.
   useEffect(() => {
     api
-      .get<{ allowed: boolean; maxDurationSeconds: number | null }>("/api/v1/dubbing/access", {
-        requireAuth: true,
-      })
+      .get<{
+        allowed: boolean;
+        plan: string | null;
+        maxDurationSeconds: number;
+        maxUploadBytes: number;
+        creditsPerSecond: number;
+      }>("/api/v1/dubbing/access", { requireAuth: true })
       .then((res) => {
         setAllowed(!!res.allowed);
-        setMaxDurationSeconds(res.maxDurationSeconds ?? null);
+        setPlan(res.plan ?? null);
+        if (res.maxDurationSeconds) setMaxDurationSeconds(res.maxDurationSeconds);
+        if (res.maxUploadBytes) setMaxUploadBytes(res.maxUploadBytes);
+        if (res.creditsPerSecond) setCreditsPerSecond(res.creditsPerSecond);
       })
       .catch(() => setAllowed(false))
       .finally(() => setAccessLoading(false));
@@ -100,8 +125,10 @@ export function useDubbing() {
       toast.error("Unsupported file", { description: "Please upload an audio or video file." });
       return;
     }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      toast.error("File too large", { description: "Please upload a file smaller than 500MB." });
+    if (file.size > maxUploadBytes) {
+      toast.error("File too large", {
+        description: `Your plan accepts files up to ${formatUploadLimit(maxUploadBytes)}.`,
+      });
       return;
     }
 
@@ -115,9 +142,9 @@ export function useDubbing() {
       return;
     }
 
-    if (maxDurationSeconds !== null && duration > maxDurationSeconds) {
-      toast.error(`Clip is too long for your plan`, {
-        description: `Your plan dubs clips up to ${maxDurationSeconds}s. This one is ${Math.round(duration)}s — trim it, or upgrade for unlimited length.`,
+    if (duration > maxDurationSeconds) {
+      toast.error("Clip is too long for your plan", {
+        description: `Your plan dubs clips up to ${formatDubDuration(maxDurationSeconds)}. This one is ${formatDubDuration(Math.round(duration))}. Trim it, or upgrade for a longer limit.`,
       });
       return;
     }
@@ -127,7 +154,7 @@ export function useDubbing() {
     setMediaDuration(duration);
     setDubbedResult(null);
     setProgress({ state: "idle", progress: 0, message: "" });
-  }, [maxDurationSeconds]);
+  }, [maxDurationSeconds, maxUploadBytes]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     void handleFileSelect(e.target.files?.[0]);
@@ -160,10 +187,19 @@ export function useDubbing() {
       const durationSeconds = mediaDuration ?? (await getMediaDuration(mediaFile));
 
       // Fail before the upload rather than after it — the server enforces this too,
-      // this just saves the user pushing a file to GCS that will be rejected.
-      if (maxDurationSeconds !== null && durationSeconds > maxDurationSeconds) {
+      // this just saves the user pushing a file to GCS that will be rejected. Re-checked
+      // WITH the language, because the dubbing_v1 route caps lower than the plan does
+      // and the language is only known once the form is submitted.
+      const durationCap = maxDubSecondsForPlan(plan, targetLanguage);
+      if (durationSeconds > durationCap) {
         throw new Error(
-          `Your plan can dub clips up to ${maxDurationSeconds} seconds. This one is ${Math.round(durationSeconds)}s — trim it, or upgrade for unlimited length.`,
+          `Your plan can dub ${languageLabel(targetLanguage)} clips up to ${formatDubDuration(durationCap)}. This one is ${formatDubDuration(Math.round(durationSeconds))}. Trim it, or upgrade for a longer limit.`,
+        );
+      }
+      const sizeCap = maxDubBytesForPlan(plan, targetLanguage);
+      if (mediaFile.size > sizeCap) {
+        throw new Error(
+          `Your plan accepts ${languageLabel(targetLanguage)} files up to ${formatUploadLimit(sizeCap)}.`,
         );
       }
 
@@ -181,6 +217,7 @@ export function useDubbing() {
           fileSize: mediaFile.size,
           isVideo,
           durationSeconds,
+          targetLanguage,
         },
         { requireAuth: true, accessToken: session?.access_token },
       );
@@ -225,7 +262,7 @@ export function useDubbing() {
           if (data.state === "completed") {
             setDubbedResult({ projectId: "", dubbedUrl: data.dubbedUrl, targetLanguage });
             toast.success("Dubbing complete 🎉", {
-              description: `Your media was dubbed into ${supportedLanguages.find((l) => l.value === targetLanguage)?.label ?? targetLanguage}.`,
+              description: `Your media was dubbed into ${languageLabel(targetLanguage)}.`,
             });
           } else if (data.state === "failed") {
             if (cancelRequestedRef.current || (data.error || "").includes("cancelled")) {
@@ -251,7 +288,7 @@ export function useDubbing() {
       updateProgress("failed", 0, message);
       toast.error("Error dubbing media", { description: message });
     }
-  }, [mediaFile, mediaDuration, targetLanguage, targetAccent, isVideo, mediaName, session, updateProgress, maxDurationSeconds]);
+  }, [mediaFile, mediaDuration, targetLanguage, targetAccent, isVideo, mediaName, session, updateProgress, plan]);
 
   /** Cancel the in-flight dub: queued jobs stop instantly, active ones abort between stages. */
   const cancelDub = useCallback(async () => {
@@ -272,6 +309,14 @@ export function useDubbing() {
 
   const isLoading = progress.state === "uploading" || progress.state === "processing";
 
+  // What this dub will cost, priced the same way the API prices it. Null until both the
+  // file's duration and the plan's rate are known: an estimate off a guessed rate would
+  // be worse than none, since it is the number the user decides on.
+  const estimatedCredits =
+    mediaDuration !== null && creditsPerSecond !== null
+      ? calculateDubbingCreditsByDuration(mediaDuration, creditsPerSecond)
+      : null;
+
   return {
     fileInputRef,
     mediaFile,
@@ -289,6 +334,8 @@ export function useDubbing() {
     allowed,
     accessLoading,
     maxDurationSeconds,
+    maxUploadBytes,
+    estimatedCredits,
     canCancel: !!activeJobId,
     cancelDub,
     handleFileChange,

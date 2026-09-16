@@ -9,6 +9,7 @@ import {
   DUBBING_CANCEL_PREFIX,
   isDubDurationAllowed,
   maxDubSecondsForPlan,
+  formatDubDuration,
   supportedLanguages,
   usesDubbingV1,
 } from '@repo/validation';
@@ -156,7 +157,7 @@ export class DubbingProcessor extends WorkerHost {
         // This is the first independent reading of it, so check before the expensive
         // part runs rather than after. (The project API reports it a step later, once
         // the source is probed — see waitForDubbingV1Project.)
-        this.assertDurationWithinPlan(planName, expectedDurationSec);
+        this.assertDurationWithinPlan(planName, expectedDurationSec, targetLanguage);
 
         // Re-price against the vendor's reading too, not just the cap. The browser sets
         // the reservation and a tampered `durationSeconds` would otherwise buy a
@@ -172,7 +173,7 @@ export class DubbingProcessor extends WorkerHost {
 
       // 2. Poll until it reports done.
       if (handle.kind === 'project') {
-        expectedDurationSec = await this.waitForDubbingV1Project(apiKey, handle, job, planName);
+        expectedDurationSec = await this.waitForDubbingV1Project(apiKey, handle, job, planName, targetLanguage);
         // Same re-pricing the legacy path does up front, just at the first moment the
         // project API has actually read the source. Still before the dub is handed over.
         chargedCredits = await this.reprice(
@@ -346,10 +347,15 @@ export class DubbingProcessor extends WorkerHost {
   }
 
   /** The vendor's own reading of the clip length — the first one we can trust. */
-  private assertDurationWithinPlan(planName: string | null | undefined, seconds: number | null): void {
-    if (!seconds || isDubDurationAllowed(planName, seconds)) return;
+  private assertDurationWithinPlan(
+    planName: string | null | undefined,
+    seconds: number | null,
+    targetLanguage?: string,
+  ): void {
+    if (!seconds || isDubDurationAllowed(planName, seconds, targetLanguage)) return;
     throw new Error(
-      `This clip is ${Math.round(seconds)}s, over the ${maxDubSecondsForPlan(planName)}s limit on your plan.`,
+      `This clip is ${Math.round(seconds)}s, over the ` +
+        `${formatDubDuration(maxDubSecondsForPlan(planName, targetLanguage))} limit on your plan.`,
     );
   }
 
@@ -403,6 +409,7 @@ export class DubbingProcessor extends WorkerHost {
     handle: Extract<DubHandle, { kind: 'project' }>,
     job: Job<DubJobData>,
     planName?: string | null,
+    targetLanguage?: string,
   ): Promise<number | null> {
     const base = `${ELEVENLABS_API}/dubbing/project/${handle.projectId}`;
     const deadline = Date.now() + ELEVENLABS_TIMEOUT_MS;
@@ -425,7 +432,7 @@ export class DubbingProcessor extends WorkerHost {
       // synthesis runs — the same "check it early" window the legacy path gets.
       if (probedDurationSec === null && project.media?.duration_s) {
         probedDurationSec = project.media.duration_s;
-        this.assertDurationWithinPlan(planName, probedDurationSec);
+        this.assertDurationWithinPlan(planName, probedDurationSec, targetLanguage);
       }
 
       if (project.status === 'ready') {
