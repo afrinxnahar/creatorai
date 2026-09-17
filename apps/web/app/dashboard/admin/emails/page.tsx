@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useAdminMails, adminApi, type EmailTemplate, type EmailCampaignStats } from "@/hooks/useAdmin"
+import { useAdminMails, useAdminApplications, adminApi, type EmailTemplate, type EmailCampaignStats } from "@/hooks/useAdmin"
 import { AdminButton } from "@/components/admin/admin-button"
+import { ReplyComposer } from "@/components/admin/reply-composer"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui/tabs"
 import {
   Select,
@@ -13,9 +14,17 @@ import {
   SelectValue,
 } from "@repo/ui/select"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/dialog"
+import {
   Send, History, PenLine, Inbox, Mail, MailOpen, Archive, Reply, ChevronLeft, ChevronRight,
+  Briefcase, ExternalLink, Download,
 } from "lucide-react"
 import { toast } from "sonner"
+import type { JobApplication } from "@repo/validation"
 
 const CATEGORY_LABELS: Record<string, string> = {
   product_update: "Product Update",
@@ -28,6 +37,21 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const TAB_TRIGGER = "data-[state=active]:bg-purple-600/20 data-[state=active]:text-purple-400"
 
+const TABS = ["sending", "receiving", "applications"] as const
+
+const APPLICATION_STATUSES = ["pending", "reviewing", "shortlisted", "rejected", "hired"] as const
+
+const applicationStatusColor = (s: string) => {
+  switch (s) {
+    case "pending": return "bg-yellow-900/40 text-yellow-400"
+    case "reviewing": return "bg-blue-900/40 text-blue-400"
+    case "shortlisted": return "bg-green-900/40 text-green-400"
+    case "rejected": return "bg-red-900/40 text-red-400"
+    case "hired": return "bg-emerald-900/40 text-emerald-400"
+    default: return "bg-slate-800 text-slate-400"
+  }
+}
+
 // useSearchParams must sit inside a Suspense boundary or `next build` fails.
 export default function AdminEmailsPage() {
   return (
@@ -38,7 +62,8 @@ export default function AdminEmailsPage() {
 }
 
 function AdminEmailsInner() {
-  const initialTab = useSearchParams().get("tab") === "receiving" ? "receiving" : "sending"
+  const tabParam = useSearchParams().get("tab")
+  const initialTab = TABS.find((t) => t === tabParam) ?? "sending"
 
   return (
     <div className="space-y-6">
@@ -57,6 +82,10 @@ function AdminEmailsInner() {
             <Inbox className="h-4 w-4 mr-1.5" />
             Receiving
           </TabsTrigger>
+          <TabsTrigger value="applications" className={TAB_TRIGGER}>
+            <Briefcase className="h-4 w-4 mr-1.5" />
+            Applications
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sending" className="mt-4">
@@ -64,6 +93,9 @@ function AdminEmailsInner() {
         </TabsContent>
         <TabsContent value="receiving" className="mt-4">
           <ReceivingTab />
+        </TabsContent>
+        <TabsContent value="applications" className="mt-4">
+          <ApplicationsTab />
         </TabsContent>
       </Tabs>
     </div>
@@ -312,6 +344,159 @@ function ReceivingTab() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function ApplicationsTab() {
+  const [page, setPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState("")
+  const { data, total, loading, refresh } = useAdminApplications(page, statusFilter)
+  const [replyTo, setReplyTo] = useState<JobApplication | null>(null)
+
+  const totalPages = Math.ceil((total || 0) / 20)
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-sm text-slate-400">
+          Email candidates from <span className="text-slate-300">support@trycreatorai.com</span>
+        </p>
+        <Select value={statusFilter || "all"} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1) }}>
+          <SelectTrigger className="w-44 bg-slate-900 border-slate-700 text-slate-300">
+            <SelectValue placeholder="All" />
+          </SelectTrigger>
+          <SelectContent className="bg-slate-900 border-slate-700">
+            <SelectItem value="all">All statuses</SelectItem>
+            {APPLICATION_STATUSES.map((s) => (
+              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="rounded-xl border border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-900/50 text-slate-400 text-left">
+                <th className="px-4 py-3 font-medium w-8"></th>
+                <th className="px-4 py-3 font-medium">Applicant</th>
+                <th className="px-4 py-3 font-medium">Position</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Last contacted</th>
+                <th className="px-4 py-3 font-medium">Applied</th>
+                <th className="px-4 py-3 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}><td colSpan={7} className="px-4 py-3"><div className="h-5 bg-slate-800 rounded animate-pulse" /></td></tr>
+                ))
+              ) : !data?.length ? (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">No applications found</td></tr>
+              ) : (
+                data.map((app) => (
+                  <tr key={app.id} className="hover:bg-slate-900/30 cursor-pointer" onClick={() => setReplyTo(app)}>
+                    <td className="px-4 py-3">
+                      {app.replied_at
+                        ? <MailOpen className="h-4 w-4 text-slate-600" />
+                        : <Mail className="h-4 w-4 text-blue-400" />}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className={app.replied_at ? "text-slate-400" : "text-slate-100 font-medium"}>{app.full_name}</div>
+                      <div className="text-xs text-slate-500">{app.email}</div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-300">{app.position}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${applicationStatusColor(app.status)}`}>{app.status}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">
+                      {app.replied_at ? new Date(app.replied_at).toLocaleDateString() : "never"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">{new Date(app.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => setReplyTo(app)}
+                        className="p-1.5 rounded hover:bg-slate-800 text-slate-400 hover:text-purple-400"
+                        title="Reply"
+                      >
+                        <Reply className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-slate-500">{total} applications</p>
+          <div className="flex gap-2">
+            <AdminButton variant="secondary" size="icon" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </AdminButton>
+            <span className="flex items-center text-sm text-slate-400 px-2">{page} / {totalPages}</span>
+            <AdminButton variant="secondary" size="icon" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </AdminButton>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!!replyTo} onOpenChange={() => setReplyTo(null)}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 max-w-2xl max-h-[90vh] overflow-y-auto">
+          {replyTo && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Reply to {replyTo.full_name}</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-4 space-y-2 text-sm">
+                  <div className="flex flex-wrap gap-x-6 gap-y-1">
+                    <div><span className="text-slate-500">Position: </span><span className="text-slate-200">{replyTo.position}</span></div>
+                    <div><span className="text-slate-500">Experience: </span><span className="text-slate-300">{replyTo.experience}</span></div>
+                    <div><span className="text-slate-500">Applied: </span><span className="text-slate-300">{new Date(replyTo.created_at).toLocaleDateString()}</span></div>
+                  </div>
+                  <div className="flex flex-wrap gap-3 pt-1">
+                    <a href={replyTo.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300">
+                      <ExternalLink className="h-3.5 w-3.5" /> LinkedIn
+                    </a>
+                    {replyTo.portfolio_url && (
+                      <a href={replyTo.portfolio_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300">
+                        <ExternalLink className="h-3.5 w-3.5" /> Portfolio
+                      </a>
+                    )}
+                    {replyTo.resume_file_path && (
+                      <a href={replyTo.resume_file_path} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300">
+                        <Download className="h-3.5 w-3.5" /> Resume
+                      </a>
+                    )}
+                  </div>
+                  {replyTo.replied_at && (
+                    <p className="text-xs text-amber-400/80 pt-1">
+                      Already contacted on {new Date(replyTo.replied_at).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                <ReplyComposer
+                  to={replyTo.email}
+                  defaultSubject={`Your application for ${replyTo.position} at Creator AI`}
+                  rows={12}
+                  send={(subject, html) => adminApi.replyToApplication(replyTo.id, subject, html)}
+                  onSent={() => { setReplyTo(null); refresh() }}
+                />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
