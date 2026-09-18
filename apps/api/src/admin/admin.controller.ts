@@ -481,6 +481,20 @@ export class AdminController {
     return this.adminService.updateApplicationStatus(id, body.status, userId, body.notes);
   }
 
+  @Post('applications/:id/reply')
+  @ApiOperation({ summary: 'Email a candidate from the support mailbox' })
+  @ApiParam({ name: 'id' })
+  @ApiBody({ schema: { type: 'object', required: ['subject', 'html'], properties: { subject: { type: 'string' }, html: { type: 'string' } } } })
+  replyToApplication(
+    @Param('id') id: string,
+    @Body() body: { subject: string; html: string },
+    @Req() req: AuthRequest,
+  ) {
+    const userId = this.getUserId(req);
+    this.adminService.logActivity(userId, 'reply_application', 'job_application', id, { subject: body.subject });
+    return this.adminService.replyToApplication(id, userId, body.subject, body.html);
+  }
+
   @Delete('applications/:id')
   @ApiOperation({ summary: 'Delete job application' })
   @ApiParam({ name: 'id' })

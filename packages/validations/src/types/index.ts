@@ -414,6 +414,8 @@ export interface JobApplication {
   notes?: string
   reviewed_by?: string
   reviewed_at?: string
+  replied_at?: string
+  replied_by?: string
   created_at: string
   updated_at: string
   job_posts?: { title: string; team: string }

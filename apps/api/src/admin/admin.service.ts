@@ -4,6 +4,10 @@ import { Resend } from 'resend';
 import { BLOG_POST_WRITABLE_FIELDS } from '@repo/validation';
 import { SupabaseService } from '../supabase/supabase.service';
 
+const SUPPORT_EMAIL = 'support@trycreatorai.com';
+const SUPPORT_FROM = `Creator AI Support <${SUPPORT_EMAIL}>`;
+const NOTIFICATIONS_FROM = 'Creator AI <notifications@trycreatorai.com>';
+
 interface FeedEvent {
   id: string;
   user_id: string;
@@ -937,16 +941,32 @@ export class AdminService {
     return data;
   }
 
-  /**
-   * Send a reply to a contact/inbound mail via Resend and mark it replied.
-   * `html` is the fully rendered reply body (the web editor converts the admin's
-   * markdown to HTML before posting).
-   */
-  async replyToMail(id: string, adminId: string, subject: string, html: string) {
+  private assertReplyContent(subject: string, html: string) {
     if (!subject?.trim() || !html?.trim()) {
       throw new BadRequestException('Subject and message are required');
     }
+  }
+
+  /**
+   * Send an admin-authored reply. `html` is already rendered (the web editor
+   * converts the admin's markdown before posting); replies always come back to
+   * the support mailbox so the conversation stays in one inbox.
+   */
+  private async sendReply(from: string, to: string, subject: string, html: string) {
     if (!this.resend) throw new InternalServerErrorException('Email service not configured');
+
+    const { error } = await this.resend.emails.send({
+      from,
+      to,
+      replyTo: SUPPORT_EMAIL,
+      subject,
+      html: `<div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">${html}</div>`,
+    });
+    if (error) throw new InternalServerErrorException('Failed to send reply');
+  }
+
+  async replyToMail(id: string, adminId: string, subject: string, html: string) {
+    this.assertReplyContent(subject, html);
 
     const { data: mail, error } = await this.db
       .from('mail_messages')
@@ -955,14 +975,7 @@ export class AdminService {
       .single();
     if (error || !mail) throw new NotFoundException('Mail not found');
 
-    const { error: sendErr } = await this.resend.emails.send({
-      from: 'Creator AI <notifications@trycreatorai.com>',
-      to: mail.from_email,
-      replyTo: 'support@trycreatorai.com',
-      subject,
-      html: `<div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">${html}</div>`,
-    });
-    if (sendErr) throw new InternalServerErrorException('Failed to send reply');
+    await this.sendReply(NOTIFICATIONS_FROM, mail.from_email, subject, html);
 
     const { data: updated, error: updErr } = await this.db
       .from('mail_messages')
@@ -1119,6 +1132,33 @@ export class AdminService {
 
     if (error) throw new BadRequestException(error.message);
     return data;
+  }
+
+  /**
+   * Email a candidate from the support mailbox. Status is left alone: contacting
+   * someone and moving them through the pipeline are separate decisions.
+   */
+  async replyToApplication(id: string, adminId: string, subject: string, html: string) {
+    this.assertReplyContent(subject, html);
+
+    const { data: application, error } = await this.db
+      .from('job_applications')
+      .select('email')
+      .eq('id', id)
+      .single();
+    if (error || !application) throw new NotFoundException('Application not found');
+
+    await this.sendReply(SUPPORT_FROM, application.email, subject, html);
+
+    const { data: updated, error: updErr } = await this.db
+      .from('job_applications')
+      .update({ replied_at: new Date().toISOString(), replied_by: adminId })
+      .eq('id', id)
+      .select()
+      .single();
+    if (updErr) throw new BadRequestException(updErr.message);
+
+    return { success: true, application: updated };
   }
 
   async deleteApplication(id: string) {
