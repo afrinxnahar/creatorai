@@ -5,10 +5,17 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ThumbnailService } from './thumbnail.service';
 import { SupabaseService } from '../supabase/supabase.service';
 import { THUMBNAIL_CREDIT_MULTIPLIER } from '@repo/validation';
+import { createGoogleAI } from '../utils/genai';
+
+jest.mock('../utils/genai', () => ({
+  createGoogleAI: jest.fn(),
+  GEMINI_TEXT_MODEL: 'gemini-test',
+}));
 
 /** Chainable supabase query mock. */
 function chain(result: unknown) {
@@ -23,6 +30,7 @@ function chain(result: unknown) {
 }
 
 const USER = 'user-1';
+const UUID = '11111111-1111-4111-8111-111111111111';
 
 const image = (over: Partial<Express.Multer.File> = {}) =>
   ({ originalname: 'ref.png', mimetype: 'image/png', size: 1_000, buffer: Buffer.from('x'), ...over }) as Express.Multer.File;
@@ -61,6 +69,7 @@ describe('ThumbnailService', () => {
             getClient: () => ({ from: (t: string) => tables[t], storage: { from: () => storage } }),
           },
         },
+        { provide: ConfigService, useValue: { get: () => undefined } },
         { provide: getQueueToken('thumbnail'), useValue: queue },
       ],
     }).compile();
@@ -215,6 +224,97 @@ describe('ThumbnailService', () => {
     it('404s on a job that is missing or belongs to someone else', async () => {
       await build({ thumbnail_jobs: chain({ data: null, error: { message: 'no rows' } }) });
       await expect(service.getJob('thumb-1', USER)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('surprisePrompt', () => {
+    let generateContent: jest.Mock;
+
+    function mockModel(text = 'A bold close-up thumbnail.') {
+      generateContent = jest.fn().mockResolvedValue({
+        candidates: [{ content: { parts: [{ text }] } }],
+      });
+      (createGoogleAI as jest.Mock).mockResolvedValue({ models: { generateContent } });
+    }
+
+    /** What the model was actually briefed with. */
+    const systemInstruction = () => generateContent.mock.calls[0][0].config.systemInstruction as string;
+
+    it('briefs the model with the linked script', async () => {
+      await build({
+        user_style: chain({ data: { tone: 'dry', visual_style: 'high contrast' } }),
+        scripts: chain({ data: { title: 'Ship faster', content: 'Step one: delete code.' } }),
+      });
+      mockModel();
+
+      await expect(service.surprisePrompt(USER, { scriptId: UUID })).resolves.toMatchObject({
+        prompt: 'A bold close-up thumbnail.',
+      });
+      expect(systemInstruction()).toContain('Script Title: Ship faster');
+      expect(systemInstruction()).toContain('Step one: delete code.');
+      expect(systemInstruction()).toContain('Visual style: high contrast');
+    });
+
+    it('briefs the model with the story blueprint hook, not just the topic', async () => {
+      await build({
+        user_style: chain({ data: null }),
+        story_builder_jobs: chain({
+          data: {
+            video_topic: 'Why builds break',
+            result: {
+              structuredBlueprint: {
+                hook: { openingLine: 'Your build is lying', visualSuggestion: 'red terminal glow' },
+                climax: { biggestInsight: 'the cache was stale' },
+              },
+            },
+          },
+        }),
+      });
+      mockModel();
+
+      await service.surprisePrompt(USER, { storyBuilderId: UUID });
+      expect(systemInstruction()).toContain('Story Topic: Why builds break');
+      expect(systemInstruction()).toContain('Suggested Visual: red terminal glow');
+      expect(systemInstruction()).toContain('Biggest Insight: the cache was stale');
+    });
+
+    it('briefs the model with the chosen idea, addressed by index', async () => {
+      await build({
+        user_style: chain({ data: null }),
+        ideation_jobs: chain({
+          data: {
+            result: {
+              ideas: [
+                { title: 'Wrong one' },
+                { title: 'Right one', uniqueAngle: 'nobody measures this' },
+              ],
+            },
+          },
+        }),
+      });
+      mockModel();
+
+      await service.surprisePrompt(USER, { ideationId: UUID, ideaIndex: 1 });
+      expect(systemInstruction()).toContain('Title: Right one');
+      expect(systemInstruction()).toContain('Unique Angle: nobody measures this');
+      expect(systemInstruction()).not.toContain('Wrong one');
+    });
+
+    it('falls back to the typed context when there is no source', async () => {
+      await build({ user_style: chain({ data: null }) });
+      mockModel();
+
+      await service.surprisePrompt(USER, { context: 'Video: my morning routine' });
+      expect(systemInstruction()).toContain('Video: my morning routine');
+    });
+
+    it('fails loudly when the model returns nothing', async () => {
+      await build({ user_style: chain({ data: null }) });
+      mockModel('');
+
+      await expect(service.surprisePrompt(USER, {})).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
     });
   });
 });
