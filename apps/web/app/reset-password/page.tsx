@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import BrandLogo from "@/components/BrandLogo";
 import * as motion from "motion/react-m";
 import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
@@ -14,7 +15,6 @@ import { ArrowLeft, CheckCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import Link from "next/link";
 import Image from "next/image";
-import logo from "@/public/dark-logo.png";
 import { AnimatePresence } from "motion/react";
 
 const passwordSchema = z.object({
@@ -145,7 +145,7 @@ function ResetPasswordForm() {
       <Card className="w-full max-w-md overflow-hidden">
         <CardHeader className="text-center space-y-4">
           <Link href="/" className="w-full mx-auto flex justify-center items-center">
-            <Image src={logo} alt="Logo" width={100} height={100} />
+            <BrandLogo size={72} />
           </Link>
           <CardTitle className="text-2xl">Reset Password</CardTitle>
           <CardDescription>

@@ -2,12 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { marked } from "marked"
 import { adminApi } from "@/hooks/useAdmin"
-import { ArrowLeft, Archive, Send, Loader2 } from "lucide-react"
+import { ArrowLeft, Archive } from "lucide-react"
 import { AdminButton } from "@/components/admin/admin-button"
-import { Input } from "@repo/ui/input"
-import { Textarea } from "@repo/ui/textarea"
+import { ReplyComposer } from "@/components/admin/reply-composer"
 import { toast } from "sonner"
 import type { MailMessage } from "@repo/validation"
 
@@ -89,16 +87,12 @@ export default function AdminMailDetailPage() {
 
   const [mail, setMail] = useState<MailMessage | null>(null)
   const [loading, setLoading] = useState(true)
-  const [subject, setSubject] = useState("")
-  const [reply, setReply] = useState("")
-  const [sending, setSending] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const m = await adminApi.getMail(id)
       setMail(m)
-      setSubject(m.subject?.startsWith("Re:") ? m.subject : `Re: ${m.subject ?? ""}`)
       if (m.status === "unread") {
         adminApi.updateMailStatus(id, "read").catch(() => {})
       }
@@ -118,25 +112,6 @@ export default function AdminMailDetailPage() {
       load()
     } catch {
       toast.error("Failed to archive")
-    }
-  }
-
-  const handleSend = async () => {
-    if (!reply.trim()) {
-      toast.error("Write a reply first")
-      return
-    }
-    setSending(true)
-    try {
-      const html = await marked.parse(reply)
-      await adminApi.replyToMail(id, subject, html)
-      toast.success(`Reply sent to ${mail?.from_email}`)
-      setReply("")
-      load()
-    } catch {
-      toast.error("Failed to send reply")
-    } finally {
-      setSending(false)
     }
   }
 
@@ -194,31 +169,12 @@ export default function AdminMailDetailPage() {
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5 space-y-4">
         <h2 className="text-sm font-semibold text-slate-300">Reply</h2>
-        <div className="space-y-1.5">
-          <label className="text-xs uppercase tracking-wide text-slate-500">Subject</label>
-          <Input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="bg-slate-800 border-slate-700 text-slate-100"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs uppercase tracking-wide text-slate-500">Message</label>
-          <Textarea
-            value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            rows={10}
-            placeholder="Write your reply… Markdown supported (**bold**, [links](https://…), lists)."
-            className="bg-slate-800 border-slate-700 text-slate-100 font-mono text-sm"
-          />
-          <p className="text-xs text-slate-500">Markdown is rendered to HTML before sending via Resend.</p>
-        </div>
-        <div className="flex justify-end">
-          <AdminButton variant="primary" onClick={handleSend} disabled={sending}>
-            {sending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
-            Send reply to {mail.from_email}
-          </AdminButton>
-        </div>
+        <ReplyComposer
+          to={mail.from_email}
+          defaultSubject={mail.subject?.startsWith("Re:") ? mail.subject : `Re: ${mail.subject ?? ""}`}
+          send={(subject, html) => adminApi.replyToMail(id, subject, html)}
+          onSent={load}
+        />
       </div>
     </div>
   )

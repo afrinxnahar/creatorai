@@ -9,6 +9,7 @@ import {
   BookOpen,
   BarChart3,
   Gift,
+  Handshake,
   Languages,
   Film,
 } from "lucide-react";
@@ -113,6 +114,9 @@ export interface SimpleFeature {
   description: string;
   cardDescription: string;
   icon: LucideIcon;
+  /** Where the card links. Omitted for anything without its own page, which
+   *  falls back to /features. */
+  href?: string;
 }
 
 export const CORE_FEATURES: ProductFeature[] = [
@@ -978,6 +982,16 @@ export const EXTRA_FEATURES: SimpleFeature[] = [
       "Invite creator friends and earn free Creator AI credits through your own personal referral link.",
     description: "Invite friends and earn free credits for every creator who signs up through your link.",
     icon: Gift,
+    href: "/referral-program",
+  },
+  {
+    title: "Affiliate Program",
+    cardDescription:
+      "Earn 20% recurring commission on every subscription you refer, for as long as they keep paying.",
+    description:
+      "Share Creator AI with your audience and earn 20% recurring commission on every subscription that comes through your link, for as long as it stays active.",
+    icon: Handshake,
+    href: "/affiliate-program",
   },
 ]
 

@@ -37,7 +37,7 @@ export class DubbingController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get a signed URL to upload source media to GCS',
-    description: 'Available on every plan; Starter is capped at 60s per clip. The browser PUTs the file to the returned uploadUrl, then calls POST /dubbing with the objectName.',
+    description: 'Available on every plan. Starter is capped at 500MB / 45 min per clip; paid plans get the vendor ceiling of 3GB / 180 min. The browser PUTs the file to the returned uploadUrl, then calls POST /dubbing with the objectName.',
   })
   @ApiBody({
     schema: {
@@ -46,9 +46,10 @@ export class DubbingController {
       properties: {
         filename: { type: 'string', maxLength: 200 },
         contentType: { type: 'string', example: 'audio/mpeg', description: 'audio/* or video/*' },
-        fileSize: { type: 'integer', description: 'bytes; max 500MB' },
+        fileSize: { type: 'integer', description: 'bytes; max 500MB on Starter, 3GB on paid plans' },
         isVideo: { type: 'boolean' },
         durationSeconds: { type: 'number', description: 'media duration; drives credit cost' },
+        targetLanguage: { type: 'string', example: 'es', description: 'optional; tightens the caps for dubbing_v1 languages' },
       },
     },
   })

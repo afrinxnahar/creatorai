@@ -1,12 +1,12 @@
 "use client"
 
 import React from 'react';
+import BrandLogo from "@/components/BrandLogo";
 import Image from "next/image";
 import Link from 'next/link';
 import dynamic from "next/dynamic";
 import * as motion from "motion/react-m";
-import logo from "@/public/dark-logo.png";
-import { IconBrandDiscordFilled as Discord, IconBrandLinkedin as Linkedin, IconBrandX as Twitter, IconBrandGithub as Github, IconBrandFacebook as Facebook } from '@tabler/icons-react';
+import { IconBrandDiscordFilled as Discord, IconBrandLinkedin as Linkedin, IconBrandX as Twitter, IconBrandGithub as Github, IconBrandFacebook as Facebook, IconBrandYoutube as Youtube } from '@tabler/icons-react';
 import { footerItems } from '@repo/ui';
 import { FloatingDock } from "@repo/ui/floating-dock";
 // One footer link that opens a form, but it reaches the API client and the
@@ -63,6 +63,7 @@ const sampleArcs = [
 
 const socialLinks = [
   { name: 'Twitter', href: 'https://x.com/joincreatorai', icon: Twitter },
+  { name: 'YouTube', href: 'https://www.youtube.com/@joincreatorai', icon: Youtube },
   { name: 'Discord', href: 'https://discord.gg/k9sZcq2gNG', icon: Discord },
   { name: 'GitHub', href: 'https://github.com/scriptaiapp/scriptai', icon: Github },
   { name: 'LinkedIn', href: 'https://www.linkedin.com/company/creatoraiapp', icon: Linkedin },
@@ -92,7 +93,7 @@ const Footer = () => {
               transition={{ duration: 0.4, delay: 0.1 }}
             >
               <div className="flex items-center gap-3">
-                <Image src={logo} alt="Creator AI Logo" width={40} height={40} />
+                <BrandLogo size={40} />
                 <span className="text-2xl font-bold text-slate-800 dark:text-slate-100">Creator AI</span>
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xs">
@@ -112,6 +113,15 @@ const Footer = () => {
                   href: item.href,
                 }))}
               />
+              <a href="https://peerpush.com/p/creator-ai" target="_blank" rel="noopener" className="inline-block">
+                <img
+                  src="https://peerpush.com/p/creator-ai/badge.png"
+                  alt="Creator AI on PeerPush"
+                  width={230}
+                  height={65}
+                  className="w-[230px] max-w-full h-auto"
+                />
+              </a>
             </motion.div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">

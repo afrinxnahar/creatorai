@@ -11,25 +11,74 @@ export function canDub(planName?: string | null): boolean {
 }
 
 /**
- * Longest source clip a plan may dub, in seconds. Starter is capped so the free tier
- * is a real trial rather than an unbounded cost sink — every Starter dub is pure COGS
- * (they pay nothing) and ElevenLabs bills us per source minute.
+ * How long, and how large, a source file may be.
  *
- * `null` means no cap. Enforced server-side in DubbingService (signUpload + createDub)
- * and re-checked in the worker against ElevenLabs' own `expected_duration_sec`, because
- * durationSeconds arrives from the browser and cannot be trusted on its own.
+ * Paid plans get ElevenLabs' own API ceiling rather than a number of ours: 3GB and
+ * 180 minutes per source file. Past that the dub is refused by the vendor AFTER the
+ * browser has pushed the bytes and the credits are reserved, so failing here is
+ * strictly cheaper than letting it through.
+ *
+ * Starter keeps 500MB / 45 min. That is an outer bound, not the shape of the trial:
+ * its 500-credit grant runs out first (~2.8 min at the Starter rate), and signUpload
+ * checks the balance before issuing the upload URL, so a Starter user is told the clip
+ * is unaffordable before uploading rather than after.
+ *
+ * Enforced server-side in DubbingService (signUpload + createDub) and re-checked in
+ * the worker against ElevenLabs' own `expected_duration_sec`, because durationSeconds
+ * arrives from the browser and cannot be trusted on its own.
  */
-export const STARTER_MAX_DUB_SECONDS = 60;
+export const STARTER_MAX_DUB_SECONDS = 45 * 60;
+export const STARTER_MAX_DUB_BYTES = 500 * 1024 * 1024;
+export const PAID_MAX_DUB_SECONDS = 180 * 60;
+export const PAID_MAX_DUB_BYTES = 3 * 1024 * 1024 * 1024;
 
-export function maxDubSecondsForPlan(planName?: string | null): number | null {
-  if (!planName) return STARTER_MAX_DUB_SECONDS;
-  return planName.toLowerCase() === 'starter' ? STARTER_MAX_DUB_SECONDS : null;
+// The dubbing_v1 route (DUBBING_V1_LANGUAGES, below) is a different, smaller endpoint:
+// 1GB / 45 min. A paid user picking one of those languages is held to this instead.
+export const DUBBING_V1_MAX_SECONDS = 45 * 60;
+export const DUBBING_V1_MAX_BYTES = 1024 * 1024 * 1024;
+
+/** Missing or unknown plan is treated as Starter, so the caps fail closed. */
+function isStarterPlan(planName?: string | null): boolean {
+  return !planName || planName.toLowerCase() === 'starter';
 }
 
-/** True when `durationSeconds` is within the plan's cap. Unknown plan → treated as Starter. */
-export function isDubDurationAllowed(planName: string | null | undefined, durationSeconds: number): boolean {
-  const cap = maxDubSecondsForPlan(planName);
-  return cap === null || durationSeconds <= cap;
+/** Longest source clip a plan may dub, tightened by the target language's route. */
+export function maxDubSecondsForPlan(planName?: string | null, targetLanguage?: string): number {
+  const cap = isStarterPlan(planName) ? STARTER_MAX_DUB_SECONDS : PAID_MAX_DUB_SECONDS;
+  return targetLanguage && usesDubbingV1(targetLanguage) ? Math.min(cap, DUBBING_V1_MAX_SECONDS) : cap;
+}
+
+/** Largest source file a plan may upload, tightened by the target language's route. */
+export function maxDubBytesForPlan(planName?: string | null, targetLanguage?: string): number {
+  const cap = isStarterPlan(planName) ? STARTER_MAX_DUB_BYTES : PAID_MAX_DUB_BYTES;
+  return targetLanguage && usesDubbingV1(targetLanguage) ? Math.min(cap, DUBBING_V1_MAX_BYTES) : cap;
+}
+
+/** True when `durationSeconds` is within the cap. Unknown plan -> treated as Starter. */
+export function isDubDurationAllowed(
+  planName: string | null | undefined,
+  durationSeconds: number,
+  targetLanguage?: string,
+): boolean {
+  return durationSeconds <= maxDubSecondsForPlan(planName, targetLanguage);
+}
+
+/** True when `fileSize` is within the cap. Unknown plan -> treated as Starter. */
+export function isDubSizeAllowed(
+  planName: string | null | undefined,
+  fileSize: number,
+  targetLanguage?: string,
+): boolean {
+  return fileSize <= maxDubBytesForPlan(planName, targetLanguage);
+}
+
+/** "45 min" / "3 hrs" for limit copy. */
+export function formatDubDuration(seconds: number): string {
+  if (seconds % 3600 === 0) {
+    const hours = seconds / 3600;
+    return `${hours} ${hours === 1 ? 'hr' : 'hrs'}`;
+  }
+  return `${Math.round(seconds / 60)} min`;
 }
 
 // Redis key prefix for mid-run cancellation (train-ai pattern). The API sets the

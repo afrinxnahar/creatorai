@@ -47,7 +47,7 @@ const USER = 'user-1';
 // DUBBING_CREDIT_MULTIPLIER promo note) moves the expectations with it instead of
 // leaving them asserting last quarter's price. The suite runs on 'Creator', a paid
 // plan, so the paid multiplier applies.
-const DUB_SECONDS = 30;
+const DUB_SECONDS = 30 * 60;
 const DUB_COST = calculateDubbingCreditsByDuration(DUB_SECONDS, DUBBING_CREDIT_MULTIPLIER);
 // One second's worth: the most a balance can hold and still not cover the clip.
 const DUB_FLOOR = getMinimumCreditsForDubbing(DUBBING_CREDIT_MULTIPLIER);
@@ -95,19 +95,22 @@ describe('DubbingService', () => {
       await expect(service.getAccess(USER)).resolves.toMatchObject({ allowed: true, plan });
     });
 
-    it('allows Starter, but reports the 60s length cap', async () => {
+    it('allows Starter, and reports its 500MB / 45 min caps', async () => {
       await build({ subscriptions: chain(planResult('Starter')) });
       await expect(service.getAccess(USER)).resolves.toMatchObject({
         allowed: true,
-        maxDurationSeconds: 60,
+        maxDurationSeconds: 45 * 60,
+        maxUploadBytes: 500 * 1024 * 1024,
+        creditsPerSecond: 3,
       });
     });
 
-    it('reports no length cap on paid plans', async () => {
+    it('reports the wider vendor ceiling on paid plans', async () => {
       await build({ subscriptions: chain(planResult('Pro')) });
       await expect(service.getAccess(USER)).resolves.toMatchObject({
         allowed: true,
-        maxDurationSeconds: null,
+        maxDurationSeconds: 180 * 60,
+        maxUploadBytes: 3 * 1024 * 1024 * 1024,
       });
     });
 
@@ -120,31 +123,59 @@ describe('DubbingService', () => {
   describe('signUpload', () => {
     const input = { filename: 'a.mp3', contentType: 'audio/mpeg', fileSize: 1000, isVideo: false, durationSeconds: DUB_SECONDS };
 
-    it('accepts a Starter clip within the 60s cap', async () => {
+    it('accepts a Starter clip within the 45 min cap', async () => {
       await build({ subscriptions: chain(planResult('Starter')) });
-      await expect(service.signUpload({ ...input, durationSeconds: 45 }, USER)).resolves.toMatchObject({
+      await expect(service.signUpload({ ...input, durationSeconds: 40 * 60 }, USER)).resolves.toMatchObject({
         success: true,
       });
     });
 
-    it('rejects a Starter clip over the 60s cap', async () => {
+    it('rejects a Starter clip over the 45 min cap', async () => {
       await build({ subscriptions: chain(planResult('Starter')) });
-      await expect(service.signUpload({ ...input, durationSeconds: 90 }, USER)).rejects.toThrow(
+      await expect(service.signUpload({ ...input, durationSeconds: 50 * 60 }, USER)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('lets a paid plan exceed the Starter cap', async () => {
       await build({ subscriptions: chain(planResult('Pro')) });
-      await expect(service.signUpload({ ...input, durationSeconds: 900 }, USER)).resolves.toMatchObject({
+      await expect(service.signUpload({ ...input, durationSeconds: 60 * 60 }, USER)).resolves.toMatchObject({
         success: true,
       });
     });
 
-    it('rejects files over 500MB', async () => {
-      await build();
+    it('still stops a paid plan at the vendor ceiling', async () => {
+      await build({ subscriptions: chain(planResult('Pro')) });
+      await expect(service.signUpload({ ...input, durationSeconds: 181 * 60 }, USER)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects a Starter file over 500MB but accepts it on a paid plan', async () => {
+      const big = { ...input, fileSize: 501 * 1024 * 1024 };
+      await build({ subscriptions: chain(planResult('Starter')) });
+      await expect(service.signUpload(big, USER)).rejects.toThrow(PayloadTooLargeException);
+
+      await build({ subscriptions: chain(planResult('Pro')) });
+      await expect(service.signUpload(big, USER)).resolves.toMatchObject({ success: true });
+    });
+
+    it('rejects files over the paid 3GB ceiling', async () => {
+      await build({ subscriptions: chain(planResult('Pro')) });
       await expect(
-        service.signUpload({ ...input, fileSize: 501 * 1024 * 1024 }, USER),
+        service.signUpload({ ...input, fileSize: 4 * 1024 * 1024 * 1024 }, USER),
+      ).rejects.toThrow(PayloadTooLargeException);
+    });
+
+    // Bengali routes through dubbing_v1, whose endpoint tops out at 1GB / 45 min no
+    // matter what the plan allows. Caught here so the bytes are never uploaded.
+    it('holds a dubbing_v1 language to the smaller route limits', async () => {
+      await build({ subscriptions: chain(planResult('Pro')) });
+      await expect(
+        service.signUpload({ ...input, durationSeconds: 60 * 60, targetLanguage: 'bn' }, USER),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.signUpload({ ...input, fileSize: 2 * 1024 * 1024 * 1024, targetLanguage: 'bn' }, USER),
       ).rejects.toThrow(PayloadTooLargeException);
     });
 

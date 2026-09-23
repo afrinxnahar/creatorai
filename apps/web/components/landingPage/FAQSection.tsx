@@ -20,7 +20,11 @@ const faqs = [
   },
   {
     q: "What can I create with it?",
-    a: "You can generate video scripts, brainstorm video ideas based on trends, create eye-catching thumbnails, auto-generate subtitles from your videos, build structured story outlines with retention scoring, generate AI videos, and dub your videos into other languages in your own voice. Course building is coming soon.",
+    a: "You can generate video scripts, brainstorm video ideas based on trends, create eye-catching thumbnails, auto-generate subtitles from your videos, build structured story outlines with retention scoring, generate short AI video clips with audio from a prompt or an image, and dub finished videos into other languages in a clone of your own voice. Course building is coming soon.",
+  },
+  {
+    q: "Can I try it without signing up?",
+    a: "Yes. The free tools at /tools run the same engines as the paid features with no account and no card: a YouTube video ideas generator, a script generator, and a story structure generator. You get one full run of each, and what you generate is yours to use commercially.",
   },
   {
     q: "How do credits work?",

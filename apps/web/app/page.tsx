@@ -12,17 +12,17 @@ import PricingSection from "@/components/landingPage/PricingSection";
 import FeatureSection from "@/components/landingPage/FeatureSection";
 import FAQSection from "@/components/landingPage/FAQSection";
 import WhyCreatorAI from "@/components/landingPage/WhyCreatorAI";
-import ReviewsMarquee from "@/components/landingPage/ReviewsMarquee";
+import FreeToolsSection from "@/components/landingPage/FreeToolsSection";
 import { FlipWords } from "@repo/ui/flip-words";
 import dynamic from 'next/dynamic';
-import { ShinyButton } from "@/components/magicui/shiny-button";
+// import { ShinyButton } from "@/components/magicui/shiny-button";
 import { useSmoothScroll } from "@/hooks/useSmoothScroll";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "@repo/ui/dialog"
+// import {
+//   Dialog,
+//   DialogContent,
+//   DialogTitle,
+//   DialogTrigger,
+// } from "@repo/ui/dialog"
 
 // DYNAMIC IMPORT
 const LandingPageSVG = dynamic(
@@ -40,7 +40,7 @@ const RISE = "animate-in fade-in slide-in-from-bottom-4 fill-mode-both duration-
 export default function Home() {
   useSmoothScroll()
 
-  const words =["Scripts", "Thumbnails", "Subtitles", "Ideas", "Story Blueprints"]
+  const words =["Scripts", "Thumbnails", "Subtitles", "Ideas", "Story Blueprints", "Dubs"]
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -90,6 +90,7 @@ export default function Home() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </MButton>
                 </Link>
+                {/* Watch Demo is temporarily hidden, uncomment to bring back
                 <Dialog>
                   <DialogTrigger asChild>
                     <ShinyButton>Watch Demo</ShinyButton>
@@ -103,6 +104,7 @@ export default function Home() {
                     ></iframe>
                   </DialogContent>
                 </Dialog>
+                */}
               </div>
 
               <p className={`${RISE} delay-500 mt-4 text-sm text-slate-600`}>
@@ -119,20 +121,16 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="free-tools" className="py-20 bg-slate-50 dark:bg-slate-900">
+          <FreeToolsSection />
+        </section>
+
         <section id="features" className="py-20 bg-white dark:bg-slate-800">
           <FeatureSection />
         </section>
 
         <section id="how-it-works" className="relative py-16 sm:py-20 lg:py-24 bg-slate-50 dark:bg-slate-900 overflow-hidden">
           <HowItWorks />
-        </section>
-
-        <section
-          id="reviews"
-          aria-label="Demo testimonials"
-          className="py-16 sm:py-20 lg:py-24 bg-white dark:bg-slate-800 overflow-hidden"
-        >
-          <ReviewsMarquee />
         </section>
 
         <section id="why-creator-ai" className="py-16 sm:py-20 lg:py-24 bg-white dark:bg-slate-800">

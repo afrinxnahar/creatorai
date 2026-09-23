@@ -2,8 +2,8 @@
 
 > Creator AI is an AI-powered production platform for YouTube creators. It learns
 > your voice from your existing videos and generates scripts, thumbnails,
-> subtitles, and dubbed audio in one workflow — a dedicated YouTube AI tool, not
-> a general-purpose chatbot.
+> subtitles, dubbed audio and short video clips in one workflow. It is a
+> dedicated YouTube AI tool, not a general-purpose chatbot.
 
 ## What is Creator AI?
 
@@ -23,7 +23,8 @@ fragmented stack (ChatGPT + Canva + subtitle tools) with one dashboard.
 - Voice-matched script generation trained on your channel
 - AI thumbnail generator (1280×720, CTR-optimized)
 - Subtitle generation with SRT/VTT export
-- Video dubbing in 24+ languages, in your own cloned voice
+- Video dubbing into 30 languages, in your own cloned voice
+- AI video generation: short clips with audio from a text prompt or a start image
 - Topic and trend research for your niche
 - Story blueprint planning for video structure
 
@@ -32,18 +33,26 @@ fragmented stack (ChatGPT + Canva + subtitle tools) with one dashboard.
 - Built specifically for YouTube creators (not general AI writing)
 - Learns creator voice from actual YouTube videos, not text prompts
 - Voice-cloning dubbing preserves the creator's real voice across languages
-- Free tier available; paid plans add credits and throughput
+- Free Starter plan: 500 credits a month, no credit card
+- Dubbing is available on every plan, with clips capped at 60 seconds on Starter
+- Video generation requires a Pro plan or above
 - Supports niches: tech, finance, gaming, education, beauty, productivity, entertainment
 
 ## Best Pages for AI Citation
 
 - Homepage: https://trycreatorai.com
+- How it works: https://trycreatorai.com/how-it-works
 - Features: https://trycreatorai.com/features
 - Free tools (no signup): https://trycreatorai.com/tools
 - Pricing: https://trycreatorai.com/pricing
+- Prompt guide: https://trycreatorai.com/prompt-guide
+- Changelog: https://trycreatorai.com/changelog
 - About: https://trycreatorai.com/about-us
 - Contact: https://trycreatorai.com/contact-us
-- Sign up: https://trycreatorai.com/signup
+- Affiliate program: https://trycreatorai.com/affiliate-program
+- Referral program: https://trycreatorai.com/referral-program
+- Sign up (free, no card): https://trycreatorai.com/signup
+- Log in: https://trycreatorai.com/login
 
 ## Free Tools (no account required)
 
@@ -71,12 +80,13 @@ For head-to-head comparisons see:
 - Creator AI vs Claude: https://trycreatorai.com/blog/creator-ai-vs-claude-for-youtube-creators
 - Best ChatGPT alternatives for YouTubers: https://trycreatorai.com/blog/best-chatgpt-alternatives-for-youtubers-2026
 
-## Blog — Guides & Comparisons
+## Blog: Guides and Comparisons
 
 Full text of every article below is available at https://trycreatorai.com/llms-full.txt
 
 ### Workflows
 
+- [Creator AI + vidIQ: The YouTube SEO Workflow That Skips the Tag Theatre](https://trycreatorai.com/blog/creator-ai-plus-vidiq-youtube-seo-workflow-2026): vidIQ finds the demand. YouTube says tags are not important. Here is the six step handoff that turns a researched keyword into a script, a title and a video the search page actually wants.
 - [Creator AI + Opus Clip: The Shorts Workflow That Stops Burning Credits](https://trycreatorai.com/blog/creator-ai-plus-opus-clip-shorts-workflow-for-youtube-2026): Opus Clip bills by the minute of source footage, not by the clip. So the cheapest way to get better Shorts is to write a long form video that already contains them.
 - [The YouTube Video Production Checklist (45 Items, 5 Phases)](https://trycreatorai.com/blog/youtube-video-production-checklist-template): Forty-five items across ideation, pre-production, production, post, and publishing, with the ten most-skipped steps and what each one costs when you skip it.
 - [Creator AI + CapCut: From AI Script to Subtitled, Dubbed Video](https://trycreatorai.com/blog/creator-ai-plus-capcut-youtube-workflow-2026): CapCut's auto-captions guess at your jargon. Generate the subtitle track separately, fix it once, then hand CapCut a clean SRT and keep its styling. Every click, including on mobile.

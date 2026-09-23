@@ -458,6 +458,8 @@ export const adminApi = {
     api.put(`/api/v1/admin/applications/${id}`, { status, notes }, AUTH),
   deleteApplication: (id: string) =>
     api.delete(`/api/v1/admin/applications/${id}`, AUTH),
+  replyToApplication: (id: string, subject: string, html: string) =>
+    api.post<{ success: boolean; application: JobApplication }>(`/api/v1/admin/applications/${id}/reply`, { subject, html }, AUTH),
   reviewAffiliateRequest: (id: string, status: 'approved' | 'denied' | 'pending', admin_notes?: string) =>
     api.put(`/api/v1/affiliate/requests/${id}`, { status, admin_notes }, AUTH),
   createAffiliateLinkForRep: (data: {

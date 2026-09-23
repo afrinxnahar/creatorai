@@ -14,6 +14,9 @@ export const SignDubUploadSchema = z.object({
   // .finite(): a browser that can't read a header reports Infinity for the duration,
   // which JSON.stringify turns into null — reject it here rather than pricing off it.
   durationSeconds: z.coerce.number().positive({ message: 'Duration is required' }).finite(),
+  // Optional, because the caps only tighten for the dubbing_v1 languages. Sent here so
+  // a Bengali dub over that route's 45 min is refused BEFORE the upload, not after it.
+  targetLanguage: z.string().refine(isSupportedDubLanguage, { message: 'Unsupported target language' }).optional(),
 });
 
 // Step 2: after the browser uploaded to GCS, create the dubbing job from the
